@@ -1,0 +1,16 @@
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { User } from '../modules/user/entities/user.entity';
+
+export const databaseConfig: TypeOrmModuleOptions = {
+  type: 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 5432,
+  username: process.env.DB_USERNAME || 'nestjs_user',
+  password: process.env.DB_PASSWORD || 'nestjs_password',
+  database: process.env.DB_NAME || 'nestjs_db',
+  entities: [User],
+  synchronize: true, // Tạm thời bật synchronize để test
+  logging: process.env.NODE_ENV === 'development',
+  // migrations: ['src/migrations/*.ts'],
+  // migrationsRun: process.env.NODE_ENV === 'production',
+};
