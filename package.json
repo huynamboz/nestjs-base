@@ -22,7 +22,8 @@
     "migration:create": "yarn typeorm migration:create",
     "migration:run": "yarn typeorm migration:run -d ormconfig.ts",
     "migration:revert": "yarn typeorm migration:revert -d ormconfig.ts",
-    "migration:show": "yarn typeorm migration:show -d ormconfig.ts"
+    "migration:show": "yarn typeorm migration:show -d ormconfig.ts",
+    "seed:roles": "ts-node src/scripts/seed-roles.ts"
   },
   "engines": {
     "npm": ">=10.0.0",

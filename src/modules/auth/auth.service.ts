@@ -8,6 +8,8 @@ import { UserService } from '../user/user.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { User } from '../user/entities/user.entity';
 import { PasswordService } from './services/password.service';
+import { RoleService } from './services/role.service';
+import { RoleName } from './entities/role.entity';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +17,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly passwordService: PasswordService,
+    private readonly roleService: RoleService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -33,11 +36,15 @@ export class AuthService {
       registerDto.password,
     );
 
-    // Tạo user mới với password đã hash
+    // Lấy role USER mặc định
+    const userRole = await this.roleService.findByName(RoleName.USER);
+
+    // Tạo user mới với password đã hash và role
     const newUser = await this.userService.create({
       email: registerDto.email,
       name: registerDto.name,
       password: hashedPassword,
+      roleId: userRole?.id,
     });
 
     // Tạo JWT token

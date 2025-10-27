@@ -19,22 +19,27 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RoleName } from '../auth/entities/role.entity';
 
 @ApiTags('users')
 @Controller('api/v1/users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth('JWT-auth')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all users' })
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Get all users (Admin only)' })
   @ApiResponse({
     status: 200,
     description: 'List of users retrieved successfully',
     type: [UserResponseDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   async findAll() {
     return this.userService.findAll();
   }
@@ -58,7 +63,8 @@ export class UserController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create new user' })
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Create new user (Admin only)' })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({
     status: 201,
@@ -67,12 +73,14 @@ export class UserController {
   })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   async create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update user by ID' })
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Update user by ID (Admin only)' })
   @ApiParam({
     name: 'id',
     description: 'User ID (UUID)',
@@ -85,13 +93,15 @@ export class UserController {
     type: UserResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete user by ID' })
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Delete user by ID (Admin only)' })
   @ApiParam({
     name: 'id',
     description: 'User ID (UUID)',
@@ -112,6 +122,7 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async remove(@Param('id') id: string) {
     return this.userService.remove(id);

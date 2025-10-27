@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   Matches,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -39,6 +40,14 @@ export class CreateUserDto {
       'Password must contain at least one uppercase letter, one lowercase letter, and one number',
   })
   password?: string;
+
+  @ApiPropertyOptional({
+    description: 'Role ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'Role ID must be a valid UUID' })
+  roleId?: string;
 }
 
 export class UpdateUserDto {
@@ -59,6 +68,14 @@ export class UpdateUserDto {
     example: 'password123',
   })
   password?: string;
+
+  @ApiPropertyOptional({
+    description: 'Role ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'Role ID must be a valid UUID' })
+  roleId?: string;
 
   @ApiPropertyOptional({
     description: 'User phone number',
@@ -102,6 +119,21 @@ export class UserResponseDto {
     example: '2024-01-01T00:00:00.000Z',
   })
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    description: 'User role information',
+    type: 'object',
+    properties: {
+      id: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+      name: { type: 'string', example: 'user' },
+      description: { type: 'string', example: 'Regular user' },
+    },
+  })
+  role?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
 
   @ApiPropertyOptional({
     description: 'User phone number',

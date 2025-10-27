@@ -4,8 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import { Role } from '../../auth/entities/role.entity';
 
 @Entity('users')
 export class User {
@@ -26,6 +29,13 @@ export class User {
 
   @Column({ nullable: true })
   address?: string;
+
+  @Column({ nullable: true })
+  roleId?: string;
+
+  @ManyToOne(() => Role, (role) => role.users, { eager: true })
+  @JoinColumn({ name: 'roleId' })
+  role?: Role;
 
   @CreateDateColumn()
   createdAt: Date;
