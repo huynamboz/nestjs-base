@@ -49,6 +49,24 @@ Các endpoint để quản lý roles và thực hiện tác vụ quản trị h�
 - `POST /api/v1/admin/users/{id}/role` - Gán role cho user
 - `GET /api/v1/admin/seed-roles` - Khởi tạo roles mặc định
 
+### 📸 [Photo Assets API](./api/photo-api.md)
+Các endpoint để quản lý assets cho photoboth (frames, filters, stickers).
+
+**Key Features:**
+- Public asset viewing
+- Admin asset upload và management
+- Cloudinary integration
+- File validation và optimization
+
+**Endpoints:**
+- `GET /api/v1/assets` - Lấy tất cả assets (public)
+- `GET /api/v1/assets/frames` - Lấy frames (public)
+- `GET /api/v1/assets/filters` - Lấy filters (public)
+- `GET /api/v1/assets/stickers` - Lấy stickers (public)
+- `POST /api/v1/admin/assets/upload` - Upload asset file (admin)
+- `POST /api/v1/admin/assets` - Tạo asset với URL (admin)
+- `DELETE /api/v1/admin/assets/{id}` - Xóa asset (admin)
+
 ## Quick Start
 
 ### 1. Authentication Flow

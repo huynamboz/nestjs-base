@@ -12,24 +12,24 @@ export class CloudinaryService {
     });
   }
 
-  async uploadImage(file: Express.Multer.File, folder: string = 'photoboth'): Promise<string> {
+  async uploadImage(
+    file: Express.Multer.File,
+    folder: string = 'photoboth',
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: folder,
           resource_type: 'auto',
-          transformation: [
-            { quality: 'auto' },
-            { fetch_format: 'auto' }
-          ]
+          transformation: [{ quality: 'auto' }, { fetch_format: 'auto' }],
         },
         (error, result) => {
           if (error) {
-            reject(error);
+            reject(new Error(error.message));
           } else {
             resolve(result.secure_url);
           }
-        }
+        },
       );
 
       uploadStream.end(file.buffer);
@@ -37,15 +37,11 @@ export class CloudinaryService {
   }
 
   async deleteImage(publicId: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      cloudinary.uploader.destroy(publicId, (error, result) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
+    try {
+      await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+      throw new Error((error as Error).message);
+    }
   }
 
   extractPublicId(url: string): string {

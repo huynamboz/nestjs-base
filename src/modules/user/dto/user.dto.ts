@@ -55,17 +55,30 @@ export class UpdateUserDto {
     description: 'User email address',
     example: 'user@example.com',
   })
+  @IsOptional()
+  @IsEmail({}, { message: 'Please provide a valid email address' })
   email?: string;
 
   @ApiPropertyOptional({
     description: 'User full name',
     example: 'John Doe',
   })
+  @IsOptional()
+  @IsString({ message: 'Name must be a string' })
+  @MinLength(2, { message: 'Name must be at least 2 characters long' })
   name?: string;
 
   @ApiPropertyOptional({
-    description: 'User password',
-    example: 'password123',
+    description:
+      'User password (minimum 8 characters, must contain uppercase, lowercase, number)',
+    example: 'Password123',
+  })
+  @IsOptional()
+  @IsString({ message: 'Password must be a string' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/, {
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number',
   })
   password?: string;
 
@@ -81,11 +94,16 @@ export class UpdateUserDto {
     description: 'User phone number',
     example: '0909090909',
   })
+  @IsOptional()
+  @IsString({ message: 'Phone number must be a string' })
   phone?: string;
 
   @ApiPropertyOptional({
     description: 'User address',
+    example: '123 Main St, City, Country',
   })
+  @IsOptional()
+  @IsString({ message: 'Address must be a string' })
   address?: string;
 }
 

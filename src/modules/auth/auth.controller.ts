@@ -31,8 +31,8 @@ export class AuthController {
     description: 'Login successful',
     type: AuthResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 400, description: 'Invalid email or password' })
+  @ApiResponse({ status: 422, description: 'Bad request - validation failed' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }

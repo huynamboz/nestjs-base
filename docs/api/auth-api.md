@@ -76,8 +76,8 @@ Authentication API cung cấp các endpoint để đăng ký, đăng nhập, đ�
 
 **Status Codes:**
 - `200`: Login successful
-- `400`: Bad request - validation failed
-- `401`: Invalid credentials
+- `400`: Invalid email or password
+- `422`: Bad request - validation failed
 
 ### 3. Logout User
 Đăng xuất người dùng.
@@ -175,12 +175,12 @@ sequenceDiagram
 }
 ```
 
-**Unauthorized Error (401):**
+**Bad Request Error (400):**
 ```json
 {
-  "statusCode": 401,
-  "message": "Invalid credentials",
-  "error": "Unauthorized"
+  "statusCode": 400,
+  "message": "Invalid email or password",
+  "error": "Bad Request"
 }
 ```
 

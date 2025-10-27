@@ -1,7 +1,7 @@
 import {
   Injectable,
-  UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
@@ -67,7 +67,7 @@ export class AuthService {
     const user = users.find((u: User) => u.email === loginDto.email);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new BadRequestException('Invalid email or password');
     }
 
     // Kiểm tra password
@@ -77,7 +77,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new BadRequestException('Invalid email or password');
     }
 
     // Tạo JWT token
