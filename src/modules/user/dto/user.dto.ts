@@ -48,6 +48,22 @@ export class CreateUserDto {
   @IsOptional()
   @IsUUID('4', { message: 'Role ID must be a valid UUID' })
   roleId?: string;
+
+  @ApiPropertyOptional({
+    description: 'User phone number',
+    example: '0909090909',
+  })
+  @IsOptional()
+  @IsString({ message: 'Phone number must be a string' })
+  phone?: string;
+
+  @ApiPropertyOptional({
+    description: 'User address',
+    example: '123 Main St, City, Country',
+  })
+  @IsOptional()
+  @IsString({ message: 'Address must be a string' })
+  address?: string;
 }
 
 export class UpdateUserDto {

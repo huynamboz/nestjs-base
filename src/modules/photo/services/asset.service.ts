@@ -4,6 +4,11 @@ import { Repository } from 'typeorm';
 import { Asset, AssetType } from '../entities/asset.entity';
 import { CreateAssetDto } from '../dto/asset.dto';
 import { CloudinaryService } from './cloudinary.service';
+import {
+  PaginationDto,
+  PaginatedResponseDto,
+} from '../../../common/dto/pagination.dto';
+import { PaginationService } from '../../../common/services/pagination.service';
 
 @Injectable()
 export class AssetService {
@@ -11,14 +16,39 @@ export class AssetService {
     @InjectRepository(Asset)
     private readonly assetRepository: Repository<Asset>,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly paginationService: PaginationService,
   ) {}
 
   async findAll(): Promise<Asset[]> {
     return this.assetRepository.find();
   }
 
+  async findAllPaginated(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponseDto<Asset>> {
+    const searchFields = ['imageUrl'];
+    return this.paginationService.getPaginatedResults(
+      this.assetRepository,
+      paginationDto,
+      searchFields,
+    );
+  }
+
   async findByType(type: AssetType): Promise<Asset[]> {
     return this.assetRepository.find({ where: { type } });
+  }
+
+  async findByTypePaginated(
+    type: AssetType,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponseDto<Asset>> {
+    const searchFields = ['imageUrl'];
+    return this.paginationService.getPaginatedResults(
+      this.assetRepository,
+      paginationDto,
+      searchFields,
+      { type },
+    );
   }
 
   async findOne(id: string): Promise<Asset> {

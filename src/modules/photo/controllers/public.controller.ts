@@ -1,8 +1,18 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AssetService } from '../services/asset.service';
 import { AssetResponseDto } from '../dto/asset.dto';
 import { AssetType } from '../entities/asset.entity';
+import {
+  PaginationDto,
+  PaginatedResponseDto,
+} from '../../../common/dto/pagination.dto';
 
 @ApiTags('public-assets')
 @Controller('api/v1/assets')
@@ -10,47 +20,128 @@ export class PublicController {
   constructor(private readonly assetService: AssetService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all assets (public)' })
+  @ApiOperation({ summary: 'Get all assets with pagination (public)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (max 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for filtering assets',
+  })
   @ApiResponse({
     status: 200,
-    description: 'List of all assets retrieved successfully',
-    type: [AssetResponseDto],
+    description: 'Paginated list of all assets retrieved successfully',
+    type: PaginatedResponseDto<AssetResponseDto>,
   })
-  async findAll() {
-    return this.assetService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.assetService.findAllPaginated(paginationDto);
   }
 
   @Get('frames')
-  @ApiOperation({ summary: 'Get all frames (public)' })
+  @ApiOperation({ summary: 'Get all frames with pagination (public)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (max 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for filtering frames',
+  })
   @ApiResponse({
     status: 200,
-    description: 'List of frames retrieved successfully',
-    type: [AssetResponseDto],
+    description: 'Paginated list of frames retrieved successfully',
+    type: PaginatedResponseDto<AssetResponseDto>,
   })
-  async getFrames() {
-    return this.assetService.findByType(AssetType.FRAME);
+  async getFrames(@Query() paginationDto: PaginationDto) {
+    return this.assetService.findByTypePaginated(
+      AssetType.FRAME,
+      paginationDto,
+    );
   }
 
   @Get('filters')
-  @ApiOperation({ summary: 'Get all filters (public)' })
+  @ApiOperation({ summary: 'Get all filters with pagination (public)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (max 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for filtering filters',
+  })
   @ApiResponse({
     status: 200,
-    description: 'List of filters retrieved successfully',
-    type: [AssetResponseDto],
+    description: 'Paginated list of filters retrieved successfully',
+    type: PaginatedResponseDto<AssetResponseDto>,
   })
-  async getFilters() {
-    return this.assetService.findByType(AssetType.FILTER);
+  async getFilters(@Query() paginationDto: PaginationDto) {
+    return this.assetService.findByTypePaginated(
+      AssetType.FILTER,
+      paginationDto,
+    );
   }
 
   @Get('stickers')
-  @ApiOperation({ summary: 'Get all stickers (public)' })
+  @ApiOperation({ summary: 'Get all stickers with pagination (public)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (max 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for filtering stickers',
+  })
   @ApiResponse({
     status: 200,
-    description: 'List of stickers retrieved successfully',
-    type: [AssetResponseDto],
+    description: 'Paginated list of stickers retrieved successfully',
+    type: PaginatedResponseDto<AssetResponseDto>,
   })
-  async getStickers() {
-    return this.assetService.findByType(AssetType.STICKER);
+  async getStickers(@Query() paginationDto: PaginationDto) {
+    return this.assetService.findByTypePaginated(
+      AssetType.STICKER,
+      paginationDto,
+    );
   }
 
   @Get(':id')

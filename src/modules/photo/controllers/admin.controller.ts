@@ -5,6 +5,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -21,10 +22,15 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiConsumes,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AssetService } from '../services/asset.service';
 import { CreateAssetDto, AssetResponseDto } from '../dto/asset.dto';
 import { AssetType } from '../entities/asset.entity';
+import {
+  PaginationDto,
+  PaginatedResponseDto,
+} from '../../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -39,16 +45,34 @@ export class AdminController {
 
   @Get()
   @Roles(RoleName.ADMIN)
-  @ApiOperation({ summary: 'Get all assets (Admin only)' })
+  @ApiOperation({ summary: 'Get all assets with pagination (Admin only)' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (max 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for filtering assets',
+  })
   @ApiResponse({
     status: 200,
-    description: 'List of all assets retrieved successfully',
-    type: [AssetResponseDto],
+    description: 'Paginated list of all assets retrieved successfully',
+    type: PaginatedResponseDto<AssetResponseDto>,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
-  async findAll() {
-    return this.assetService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.assetService.findAllPaginated(paginationDto);
   }
 
   @Post('upload')

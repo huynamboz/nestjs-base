@@ -12,23 +12,43 @@ Photo Assets API cung cấp các endpoint để quản lý frames, filters và s
 
 ## Public Endpoints (Không cần authentication)
 
-### 1. Get All Assets
-Lấy danh sách tất cả assets trong hệ thống.
+### 1. Get All Assets (Paginated)
+Lấy danh sách tất cả assets trong hệ thống với phân trang.
 
 **Endpoint:** `GET /api/v1/assets`
 
+**Query Parameters:**
+- `page` (optional, number): Page number (starts from 1, default: 1)
+- `limit` (optional, number): Number of items per page (max 100, default: 10)
+- `search` (optional, string): Search term for filtering assets (searches in imageUrl)
+
+**Example Request:**
+```
+GET /api/v1/assets?page=1&limit=5&search=frame
+```
+
 **Response:**
 ```json
-[
-  {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/frames/frame1.png",
-    "publicId": "photoboth/frames/frame1",
-    "type": "frame",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+{
+  "data": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/frames/frame1.png",
+      "publicId": "photoboth/frames/frame1",
+      "type": "frame",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 5,
+    "total": 15,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrev": false
   }
-]
+}
 ```
 
 **Status Codes:**

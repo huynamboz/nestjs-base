@@ -12,8 +12,8 @@ Tất cả endpoints yêu cầu:
 
 ## Endpoints
 
-### 1. Get All Users
-Lấy danh sách tất cả người dùng trong hệ thống.
+### 1. Get All Users (Paginated)
+Lấy danh sách tất cả người dùng trong hệ thống với phân trang.
 
 **Endpoint:** `GET /api/v1/users`
 
@@ -22,24 +22,44 @@ Lấy danh sách tất cả người dùng trong hệ thống.
 Authorization: Bearer <access_token>
 ```
 
+**Query Parameters:**
+- `page` (optional, number): Page number (starts from 1, default: 1)
+- `limit` (optional, number): Number of items per page (max 100, default: 10)
+- `search` (optional, string): Search term for filtering users (searches in email, name, phone, address)
+
+**Example Request:**
+```
+GET /api/v1/users?page=1&limit=5&search=john
+```
+
 **Response:**
 ```json
-[
-  {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "phone": "0909090909",
-    "address": "123 Main St",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z",
-    "role": {
-      "id": "role-uuid",
-      "name": "user",
-      "description": "Regular user"
+{
+  "data": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "email": "user@example.com",
+      "name": "John Doe",
+      "phone": "0909090909",
+      "address": "123 Main St",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "role": {
+        "id": "role-uuid",
+        "name": "user",
+        "description": "Regular user"
+      }
     }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 5,
+    "total": 25,
+    "totalPages": 5,
+    "hasNext": true,
+    "hasPrev": false
   }
-]
+}
 ```
 
 **Status Codes:**
