@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { PhotoModule } from './modules/photo/photo.module';
 import { databaseConfig } from './config/database.config';
 
 @Module({
@@ -16,6 +17,7 @@ import { databaseConfig } from './config/database.config';
     UserModule,
     AuthModule,
     HealthModule,
+    PhotoModule,
   ],
   controllers: [AppController],
   providers: [],

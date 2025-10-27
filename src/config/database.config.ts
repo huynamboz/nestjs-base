@@ -1,6 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { User } from '../modules/user/entities/user.entity';
 import { Role } from '../modules/auth/entities/role.entity';
+import { Asset } from '../modules/photo/entities/asset.entity';
 
 export const databaseConfig: TypeOrmModuleOptions = {
   type: 'postgres',
@@ -9,7 +10,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   username: process.env.DB_USERNAME || 'nestjs_user',
   password: process.env.DB_PASSWORD || 'nestjs_password',
   database: process.env.DB_NAME || 'nestjs_db',
-  entities: [User, Role],
+  entities: [User, Role, Asset],
   synchronize: true, // Tạm thời bật synchronize để test
   logging: process.env.NODE_ENV === 'development',
   // migrations: ['src/migrations/*.ts'],

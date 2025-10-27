@@ -23,6 +23,8 @@ async function bootstrap() {
     .addTag('auth', 'Authentication endpoints')
     .addTag('users', 'User management endpoints')
     .addTag('health', 'Health check endpoints')
+    .addTag('public-assets', 'Public asset endpoints')
+    .addTag('admin-assets', 'Admin asset management endpoints')
     .addBearerAuth(
       {
         type: 'http',
