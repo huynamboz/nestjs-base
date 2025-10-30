@@ -34,11 +34,13 @@ async function bootstrap() {
     .setTitle('NestJS API')
     .setDescription('API documentation for NestJS application')
     .setVersion('1.0')
-    .addTag('auth', 'Authentication endpoints')
-    .addTag('users', 'User management endpoints')
-    .addTag('health', 'Health check endpoints')
-    .addTag('public-assets', 'Public asset endpoints')
-    .addTag('admin-assets', 'Admin asset management endpoints')
+      .addTag('auth', 'Authentication endpoints')
+      .addTag('users', 'User management endpoints')
+      .addTag('health', 'Health check endpoints')
+      .addTag('public-assets', 'Public asset endpoints')
+      .addTag('admin-assets', 'Admin asset management endpoints')
+      .addTag('public-photobooth', 'Public photobooth endpoints')
+      .addTag('admin-photobooth', 'Admin photobooth management endpoints')
     .addBearerAuth(
       {
         type: 'http',

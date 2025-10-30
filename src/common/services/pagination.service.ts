@@ -85,11 +85,27 @@ export class PaginationService {
     paginationDto: PaginationDto,
     searchFields: string[] = [],
     additionalConditions: Record<string, any> = {},
+    relations: string[] = [],
   ): Promise<PaginatedResponseDto<T>> {
     const { page = 1, limit = 10, search } = paginationDto;
 
     // Create query builder
     let queryBuilder = repository.createQueryBuilder();
+
+    // Add relations if provided
+    if (relations.length > 0) {
+      relations.forEach(relation => {
+        // For simple relations, use leftJoinAndSelect
+        // For nested relations like 'user.role', we need to handle differently
+        if (relation.includes('.')) {
+          const [parent, child] = relation.split('.');
+          queryBuilder.leftJoinAndSelect(parent, parent)
+                     .leftJoinAndSelect(`${parent}.${child}`, `${parent}_${child}`);
+        } else {
+          queryBuilder.leftJoinAndSelect(relation, relation);
+        }
+      });
+    }
 
     // Apply search if provided
     if (search && searchFields.length > 0) {
