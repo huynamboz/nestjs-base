@@ -1,8 +1,55 @@
-# Docker Production Setup
+# Docker Setup Guide
+
+Hướng dẫn chạy ứng dụng bằng Docker Compose cho cả **Development** và **Production**.
+
+---
+
+## 🛠️ Development Mode
+
+### Chạy ứng dụng ở chế độ Development (với hot reload):
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+Hoặc chạy ở background:
+
+```bash
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+### Tính năng Development Mode:
+- ✅ **Hot reload**: Tự động reload khi code thay đổi
+- ✅ **Volume mounts**: Source code được mount trực tiếp
+- ✅ **Development dependencies**: Tất cả devDependencies được cài đặt
+- ✅ **Auto migrations**: Tự động chạy migrations khi start
+- ✅ **Auto seed**: Tự động seed roles và admin user
+
+### Xem logs development:
+
+```bash
+docker-compose -f docker-compose.dev.yml logs -f app
+```
+
+### Dừng development:
+
+```bash
+docker-compose -f docker-compose.dev.yml down
+```
+
+### Dừng và xóa volumes:
+
+```bash
+docker-compose -f docker-compose.dev.yml down -v
+```
+
+---
+
+## 🚀 Production Mode
 
 Hướng dẫn chạy toàn bộ ứng dụng bằng Docker Compose trong môi trường production.
 
-## 🚀 Quick Start
+### Quick Start
 
 ### 1. Tạo file `.env` (tùy chọn)
 

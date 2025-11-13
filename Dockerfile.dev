@@ -1,0 +1,34 @@
+# Development Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install netcat for health checks
+RUN apk add --no-cache netcat-openbsd
+
+# Copy package files
+COPY package*.json ./
+COPY yarn.lock* ./
+
+# Install all dependencies (including devDependencies)
+RUN npm ci && npm cache clean --force
+
+# Copy entrypoint script for dev
+COPY docker-entrypoint.dev.sh ./
+RUN chmod +x docker-entrypoint.dev.sh
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001
+
+# Change ownership
+RUN chown -R nestjs:nodejs /app
+
+USER nestjs
+
+# Expose port
+EXPOSE 3000
+
+# Development mode - no entrypoint, use command from docker-compose
+# This allows hot reload with volume mounts
+

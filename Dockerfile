@@ -7,8 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY yarn.lock* ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install all dependencies (including devDependencies for build)
+RUN npm ci && npm cache clean --force
 
 # Copy source code (including Prisma if exists)
 COPY . .
