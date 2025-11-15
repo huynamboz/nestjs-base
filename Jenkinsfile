@@ -15,7 +15,7 @@ pipeline {
             steps {
                 sh '''
                     echo Building Docker image for backend...
-                    docker compose build
+                    docker compose --env-file .env build
                 '''
             }
         }
@@ -24,8 +24,8 @@ pipeline {
             steps {
                 sh '''
                     echo Deploying...
-                    docker compose down
-                    docker compose up -d
+                    docker compose --env-file .env down
+                    docker compose --env-file .env up -d
                 '''
             }
         }
