@@ -70,10 +70,8 @@ async function bootstrap() {
   });
 
   // Serve static files from public directory (after Swagger setup)
-  // Use a different prefix to avoid conflict with Swagger
-  app.useStaticAssets(join(__dirname, '..', 'public'), {
-    prefix: '/static',
-  });
+  // Serve without prefix to allow direct access to HTML files
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   await app.listen(3000);
   console.log('🚀 Application is running on: http://localhost:3000');
