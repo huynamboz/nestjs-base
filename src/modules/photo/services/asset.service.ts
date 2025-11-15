@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Asset, AssetType } from '../entities/asset.entity';
-import { CreateAssetDto } from '../dto/asset.dto';
+import { CreateAssetDto, AssetQueryDto } from '../dto/asset.dto';
 import { CloudinaryService } from './cloudinary.service';
 import {
   PaginationDto,
@@ -24,13 +24,21 @@ export class AssetService {
   }
 
   async findAllPaginated(
-    paginationDto: PaginationDto,
+    queryDto: AssetQueryDto,
   ): Promise<PaginatedResponseDto<Asset>> {
     const searchFields = ['imageUrl'];
+    const additionalConditions: Record<string, any> = {};
+    
+    // Add type filter if provided
+    if (queryDto.type) {
+      additionalConditions.type = queryDto.type;
+    }
+    
     return this.paginationService.getPaginatedResults(
       this.assetRepository,
-      paginationDto,
+      queryDto,
       searchFields,
+      additionalConditions,
     );
   }
 
@@ -63,6 +71,14 @@ export class AssetService {
   async uploadAsset(
     file: Express.Multer.File,
     type: AssetType,
+    additionalData?: {
+      filterType?: string;
+      scale?: number;
+      offset_y?: number;
+      anchor_idx?: number;
+      left_idx?: number;
+      right_idx?: number;
+    },
   ): Promise<Asset> {
     const folder = `photoboth/${type}s`;
     const imageUrl = await this.cloudinaryService.uploadImage(file, folder);
@@ -72,6 +88,7 @@ export class AssetService {
       imageUrl,
       publicId,
       type,
+      ...additionalData,
     });
 
     return this.assetRepository.save(asset);

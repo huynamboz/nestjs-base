@@ -30,6 +30,24 @@ export class Asset {
   })
   type: AssetType;
 
+  @Column({ nullable: true })
+  filterType?: string; // cute/cool/poetic
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  scale?: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  offset_y?: number;
+
+  @Column({ type: 'int', nullable: true })
+  anchor_idx?: number;
+
+  @Column({ type: 'int', nullable: true })
+  left_idx?: number;
+
+  @Column({ type: 'int', nullable: true })
+  right_idx?: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

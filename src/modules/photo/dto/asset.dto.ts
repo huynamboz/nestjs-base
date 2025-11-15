@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsNumber, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AssetType } from '../entities/asset.entity';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class CreateAssetDto {
   @ApiProperty({
@@ -10,6 +12,57 @@ export class CreateAssetDto {
   })
   @IsEnum(AssetType, { message: 'Type must be a valid asset type' })
   type: AssetType;
+
+  @ApiPropertyOptional({
+    description: 'Filter type (cute/cool/poetic) - only for filter type',
+    example: 'cool',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['cute', 'cool', 'poetic'], {
+    message: 'Filter type must be one of: cute, cool, poetic',
+  })
+  filterType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Scale value',
+    example: 2.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  scale?: number;
+
+  @ApiPropertyOptional({
+    description: 'Offset Y value',
+    example: -100,
+  })
+  @IsOptional()
+  @IsNumber()
+  offset_y?: number;
+
+  @ApiPropertyOptional({
+    description: 'Anchor index',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  anchor_idx?: number;
+
+  @ApiPropertyOptional({
+    description: 'Left index',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  left_idx?: number;
+
+  @ApiPropertyOptional({
+    description: 'Right index',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  right_idx?: number;
 }
 
 export class UploadAssetDto {
@@ -20,6 +73,57 @@ export class UploadAssetDto {
   })
   @IsEnum(AssetType, { message: 'Type must be a valid asset type' })
   type: AssetType;
+
+  @ApiPropertyOptional({
+    description: 'Filter type (cute/cool/poetic) - only for filter type',
+    example: 'cool',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['cute', 'cool', 'poetic'], {
+    message: 'Filter type must be one of: cute, cool, poetic',
+  })
+  filterType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Scale value',
+    example: 2.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  scale?: number;
+
+  @ApiPropertyOptional({
+    description: 'Offset Y value',
+    example: -100,
+  })
+  @IsOptional()
+  @IsNumber()
+  offset_y?: number;
+
+  @ApiPropertyOptional({
+    description: 'Anchor index',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  anchor_idx?: number;
+
+  @ApiPropertyOptional({
+    description: 'Left index',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  left_idx?: number;
+
+  @ApiPropertyOptional({
+    description: 'Right index',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  right_idx?: number;
 }
 
 export class AssetResponseDto {
@@ -49,6 +153,42 @@ export class AssetResponseDto {
   })
   type: AssetType;
 
+  @ApiPropertyOptional({
+    description: 'Filter type (cute/cool/poetic) - only for filter type',
+    example: 'cool',
+  })
+  filterType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Scale value',
+    example: 2.5,
+  })
+  scale?: number;
+
+  @ApiPropertyOptional({
+    description: 'Offset Y value',
+    example: -100,
+  })
+  offset_y?: number;
+
+  @ApiPropertyOptional({
+    description: 'Anchor index',
+    example: 10,
+  })
+  anchor_idx?: number;
+
+  @ApiPropertyOptional({
+    description: 'Left index',
+    example: 10,
+  })
+  left_idx?: number;
+
+  @ApiPropertyOptional({
+    description: 'Right index',
+    example: 10,
+  })
+  right_idx?: number;
+
   @ApiProperty({
     description: 'Creation date',
     example: '2024-01-01T00:00:00.000Z',
@@ -60,4 +200,15 @@ export class AssetResponseDto {
     example: '2024-01-01T00:00:00.000Z',
   })
   updatedAt: Date;
+}
+
+export class AssetQueryDto extends PaginationDto {
+  @ApiPropertyOptional({
+    description: 'Filter by asset type',
+    enum: AssetType,
+    example: AssetType.FRAME,
+  })
+  @IsOptional()
+  @IsEnum(AssetType, { message: 'Type must be a valid asset type' })
+  type?: AssetType;
 }

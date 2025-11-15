@@ -7,13 +7,22 @@ Photo Assets API cung cấp các endpoint để quản lý frames, filters và s
 
 ## Asset Types
 - **`frame`** - Khung ảnh cho photoboth
-- **`filter`** - Bộ lọc màu sắc
+- **`filter`** - Bộ lọc màu sắc (có thể có các properties bổ sung như `filterType`, `scale`, `offset_y`, v.v.)
 - **`sticker`** - Sticker trang trí
+
+## Filter Properties (Chỉ áp dụng cho type="filter")
+Khi asset có `type="filter"`, có thể có các properties bổ sung sau:
+- **`filterType`** (string, optional): Tên nhóm filter - `cute`, `cool`, hoặc `poetic`
+- **`scale`** (number, optional): Giá trị scale (decimal, ví dụ: 2.5)
+- **`offset_y`** (number, optional): Giá trị offset Y (decimal, ví dụ: -100)
+- **`anchor_idx`** (number, optional): Anchor index (integer, ví dụ: 10)
+- **`left_idx`** (number, optional): Left index (integer, ví dụ: 10)
+- **`right_idx`** (number, optional): Right index (integer, ví dụ: 10)
 
 ## Public Endpoints (Không cần authentication)
 
 ### 1. Get All Assets (Paginated)
-Lấy danh sách tất cả assets trong hệ thống với phân trang.
+Lấy danh sách tất cả assets trong hệ thống với phân trang và filter.
 
 **Endpoint:** `GET /api/v1/assets`
 
@@ -21,11 +30,70 @@ Lấy danh sách tất cả assets trong hệ thống với phân trang.
 - `page` (optional, number): Page number (starts from 1, default: 1)
 - `limit` (optional, number): Number of items per page (max 100, default: 10)
 - `search` (optional, string): Search term for filtering assets (searches in imageUrl)
+- `type` (optional, string): Filter by asset type - `frame`, `filter`, or `sticker`
 
-**Example Request:**
+**Example Requests:**
 ```
-GET /api/v1/assets?page=1&limit=5&search=frame
+# Get all assets
+GET /api/v1/assets?page=1&limit=10
+
+# Get only filters
+GET /api/v1/assets?page=1&limit=10&type=filter
+
+# Search with type filter
+GET /api/v1/assets?page=1&limit=10&type=filter&search=cool
 ```
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": "2bb7c789-de1a-467e-8d14-4f36f3343828",
+      "imageUrl": "https://res.cloudinary.com/dtpqh6cau/image/upload/v1763213217/photoboth/filters/qwtppcnm9nkftfrdsrcv.jpg",
+      "publicId": "qwtppcnm9nkftfrdsrcv",
+      "type": "filter",
+      "filterType": "cool",
+      "scale": 2.5,
+      "offset_y": -100,
+      "anchor_idx": 10,
+      "left_idx": 10,
+      "right_idx": 10,
+      "createdAt": "2025-11-15T06:26:59.604Z",
+      "updatedAt": "2025-11-15T06:26:59.604Z"
+    },
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/frames/frame1.png",
+      "publicId": "photoboth/frames/frame1",
+      "type": "frame",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 15,
+    "totalPages": 2,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+```
+
+**Status Codes:**
+- `200`: Success
+
+### 2. Get Frames
+Lấy danh sách tất cả frames với phân trang.
+
+**Endpoint:** `GET /api/v1/assets/frames`
+
+**Query Parameters:**
+- `page` (optional, number): Page number (starts from 1, default: 1)
+- `limit` (optional, number): Number of items per page (max 100, default: 10)
+- `search` (optional, string): Search term for filtering frames
 
 **Response:**
 ```json
@@ -42,10 +110,10 @@ GET /api/v1/assets?page=1&limit=5&search=frame
   ],
   "meta": {
     "page": 1,
-    "limit": 5,
-    "total": 15,
-    "totalPages": 3,
-    "hasNext": true,
+    "limit": 10,
+    "total": 5,
+    "totalPages": 1,
+    "hasNext": false,
     "hasPrev": false
   }
 }
@@ -54,67 +122,89 @@ GET /api/v1/assets?page=1&limit=5&search=frame
 **Status Codes:**
 - `200`: Success
 
-### 2. Get Frames
-Lấy danh sách tất cả frames.
-
-**Endpoint:** `GET /api/v1/assets/frames`
-
-**Response:**
-```json
-[
-  {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/frames/frame1.png",
-    "publicId": "photoboth/frames/frame1",
-    "type": "frame",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
-  }
-]
-```
-
-**Status Codes:**
-- `200`: Success
-
 ### 3. Get Filters
-Lấy danh sách tất cả filters.
+Lấy danh sách tất cả filters với phân trang. Filters có thể có các properties bổ sung như `filterType`, `scale`, `offset_y`, v.v.
 
 **Endpoint:** `GET /api/v1/assets/filters`
 
+**Query Parameters:**
+- `page` (optional, number): Page number (starts from 1, default: 1)
+- `limit` (optional, number): Number of items per page (max 100, default: 10)
+- `search` (optional, string): Search term for filtering filters
+
 **Response:**
 ```json
-[
-  {
-    "id": "456e7890-e89b-12d3-a456-426614174001",
-    "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/filters/filter1.png",
-    "publicId": "photoboth/filters/filter1",
-    "type": "filter",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+{
+  "data": [
+    {
+      "id": "2bb7c789-de1a-467e-8d14-4f36f3343828",
+      "imageUrl": "https://res.cloudinary.com/dtpqh6cau/image/upload/v1763213217/photoboth/filters/qwtppcnm9nkftfrdsrcv.jpg",
+      "publicId": "qwtppcnm9nkftfrdsrcv",
+      "type": "filter",
+      "filterType": "cool",
+      "scale": 2.5,
+      "offset_y": -100,
+      "anchor_idx": 10,
+      "left_idx": 10,
+      "right_idx": 10,
+      "createdAt": "2025-11-15T06:26:59.604Z",
+      "updatedAt": "2025-11-15T06:26:59.604Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
   }
-]
+}
 ```
+
+**Filter Properties (chỉ áp dụng cho type="filter"):**
+- `filterType` (string, optional): Tên nhóm filter - `cute`, `cool`, hoặc `poetic`
+- `scale` (number, optional): Giá trị scale (decimal)
+- `offset_y` (number, optional): Giá trị offset Y (decimal)
+- `anchor_idx` (number, optional): Anchor index (integer)
+- `left_idx` (number, optional): Left index (integer)
+- `right_idx` (number, optional): Right index (integer)
 
 **Status Codes:**
 - `200`: Success
 
 ### 4. Get Stickers
-Lấy danh sách tất cả stickers.
+Lấy danh sách tất cả stickers với phân trang.
 
 **Endpoint:** `GET /api/v1/assets/stickers`
 
+**Query Parameters:**
+- `page` (optional, number): Page number (starts from 1, default: 1)
+- `limit` (optional, number): Number of items per page (max 100, default: 10)
+- `search` (optional, string): Search term for filtering stickers
+
 **Response:**
 ```json
-[
-  {
-    "id": "789e0123-e89b-12d3-a456-426614174002",
-    "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/stickers/sticker1.png",
-    "publicId": "photoboth/stickers/sticker1",
-    "type": "sticker",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+{
+  "data": [
+    {
+      "id": "789e0123-e89b-12d3-a456-426614174002",
+      "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/stickers/sticker1.png",
+      "publicId": "photoboth/stickers/sticker1",
+      "type": "sticker",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 3,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
   }
-]
+}
 ```
 
 **Status Codes:**
@@ -128,7 +218,7 @@ Lấy thông tin chi tiết của một asset.
 **Path Parameters:**
 - `id` (string, required): Asset UUID
 
-**Response:**
+**Response (Frame):**
 ```json
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -137,6 +227,24 @@ Lấy thông tin chi tiết của một asset.
   "type": "frame",
   "createdAt": "2024-01-01T00:00:00.000Z",
   "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+**Response (Filter):**
+```json
+{
+  "id": "2bb7c789-de1a-467e-8d14-4f36f3343828",
+  "imageUrl": "https://res.cloudinary.com/dtpqh6cau/image/upload/v1763213217/photoboth/filters/qwtppcnm9nkftfrdsrcv.jpg",
+  "publicId": "qwtppcnm9nkftfrdsrcv",
+  "type": "filter",
+  "filterType": "cool",
+  "scale": 2.5,
+  "offset_y": -100,
+  "anchor_idx": 10,
+  "left_idx": 10,
+  "right_idx": 10,
+  "createdAt": "2025-11-15T06:26:59.604Z",
+  "updatedAt": "2025-11-15T06:26:59.604Z"
 }
 ```
 
@@ -152,7 +260,7 @@ Tất cả admin endpoints yêu cầu:
 - **Role:** ADMIN
 
 ### 1. Get All Assets (Admin)
-Lấy danh sách tất cả assets (admin view).
+Lấy danh sách tất cả assets với phân trang và filter (admin view).
 
 **Endpoint:** `GET /api/v1/admin/assets`
 
@@ -161,18 +269,40 @@ Lấy danh sách tất cả assets (admin view).
 Authorization: Bearer <access_token>
 ```
 
+**Query Parameters:**
+- `page` (optional, number): Page number (starts from 1, default: 1)
+- `limit` (optional, number): Number of items per page (max 100, default: 10)
+- `search` (optional, string): Search term for filtering assets
+- `type` (optional, string): Filter by asset type - `frame`, `filter`, or `sticker`
+
 **Response:**
 ```json
-[
-  {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photoboth/frames/frame1.png",
-    "publicId": "photoboth/frames/frame1",
-    "type": "frame",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+{
+  "data": [
+    {
+      "id": "2bb7c789-de1a-467e-8d14-4f36f3343828",
+      "imageUrl": "https://res.cloudinary.com/dtpqh6cau/image/upload/v1763213217/photoboth/filters/qwtppcnm9nkftfrdsrcv.jpg",
+      "publicId": "qwtppcnm9nkftfrdsrcv",
+      "type": "filter",
+      "filterType": "cool",
+      "scale": 2.5,
+      "offset_y": -100,
+      "anchor_idx": 10,
+      "left_idx": 10,
+      "right_idx": 10,
+      "createdAt": "2025-11-15T06:26:59.604Z",
+      "updatedAt": "2025-11-15T06:26:59.604Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
   }
-]
+}
 ```
 
 **Status Codes:**
@@ -194,12 +324,18 @@ Content-Type: multipart/form-data
 **Request Body (Form Data):**
 - `file` (file, required): Image file (max 5MB, jpeg/jpg/png/gif/webp)
 - `type` (string, required): Asset type (frame/filter/sticker)
+- `filterType` (string, optional): Filter type - chỉ áp dụng khi type=filter (cute/cool/poetic)
+- `scale` (number, optional): Scale value - chỉ áp dụng khi type=filter
+- `offset_y` (number, optional): Offset Y value - chỉ áp dụng khi type=filter
+- `anchor_idx` (number, optional): Anchor index - chỉ áp dụng khi type=filter
+- `left_idx` (number, optional): Left index - chỉ áp dụng khi type=filter
+- `right_idx` (number, optional): Right index - chỉ áp dụng khi type=filter
 
 **File Validation:**
 - **Max size:** 5MB
 - **Allowed types:** image/jpeg, image/jpg, image/png, image/gif, image/webp
 
-**Response:**
+**Response (Frame):**
 ```json
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -208,6 +344,24 @@ Content-Type: multipart/form-data
   "type": "frame",
   "createdAt": "2024-01-01T00:00:00.000Z",
   "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+**Response (Filter with properties):**
+```json
+{
+  "id": "2bb7c789-de1a-467e-8d14-4f36f3343828",
+  "imageUrl": "https://res.cloudinary.com/dtpqh6cau/image/upload/v1763213217/photoboth/filters/qwtppcnm9nkftfrdsrcv.jpg",
+  "publicId": "qwtppcnm9nkftfrdsrcv",
+  "type": "filter",
+  "filterType": "cool",
+  "scale": 2.5,
+  "offset_y": -100,
+  "anchor_idx": 10,
+  "left_idx": 10,
+  "right_idx": 10,
+  "createdAt": "2025-11-15T06:26:59.604Z",
+  "updatedAt": "2025-11-15T06:26:59.604Z"
 }
 ```
 
@@ -231,22 +385,40 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "type": "frame"
+  "type": "filter",
+  "filterType": "cool",
+  "scale": 2.5,
+  "offset_y": -100,
+  "anchor_idx": 10,
+  "left_idx": 10,
+  "right_idx": 10
 }
 ```
 
 **Validation Rules:**
 - `type`: Required, must be one of: frame, filter, sticker
+- `filterType`: Optional, must be one of: cute, cool, poetic (only for filter type)
+- `scale`: Optional, number (only for filter type)
+- `offset_y`: Optional, number (only for filter type)
+- `anchor_idx`: Optional, number (only for filter type)
+- `left_idx`: Optional, number (only for filter type)
+- `right_idx`: Optional, number (only for filter type)
 
-**Response:**
+**Response (Filter with properties):**
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "imageUrl": "https://example.com/asset.png",
+  "id": "2bb7c789-de1a-467e-8d14-4f36f3343828",
+  "imageUrl": "https://example.com/filter.jpg",
   "publicId": null,
-  "type": "frame",
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "updatedAt": "2024-01-01T00:00:00.000Z"
+  "type": "filter",
+  "filterType": "cool",
+  "scale": 2.5,
+  "offset_y": -100,
+  "anchor_idx": 10,
+  "left_idx": 10,
+  "right_idx": 10,
+  "createdAt": "2025-11-15T06:26:59.604Z",
+  "updatedAt": "2025-11-15T06:26:59.604Z"
 }
 ```
 
@@ -291,6 +463,12 @@ Authorization: Bearer <access_token>
   imageUrl: string;     // Cloudinary URL or external URL
   publicId?: string;    // Cloudinary public ID (if uploaded)
   type: AssetType;      // frame, filter, or sticker
+  filterType?: string;  // Filter type: cute, cool, or poetic (only for filter type)
+  scale?: number;       // Scale value (only for filter type)
+  offset_y?: number;   // Offset Y value (only for filter type)
+  anchor_idx?: number;  // Anchor index (only for filter type)
+  left_idx?: number;    // Left index (only for filter type)
+  right_idx?: number;  // Right index (only for filter type)
   createdAt: Date;      // Creation timestamp
   updatedAt: Date;      // Last update timestamp
 }
@@ -365,19 +543,34 @@ enum AssetType {
 curl -X GET http://localhost:3000/api/v1/assets
 ```
 
+**Get all assets with pagination:**
+```bash
+curl -X GET "http://localhost:3000/api/v1/assets?page=1&limit=10"
+```
+
+**Get assets filtered by type:**
+```bash
+curl -X GET "http://localhost:3000/api/v1/assets?page=1&limit=10&type=filter"
+```
+
+**Get assets with search and type filter:**
+```bash
+curl -X GET "http://localhost:3000/api/v1/assets?page=1&limit=10&type=filter&search=cool"
+```
+
 **Get frames only:**
 ```bash
-curl -X GET http://localhost:3000/api/v1/assets/frames
+curl -X GET "http://localhost:3000/api/v1/assets/frames?page=1&limit=10"
 ```
 
 **Get filters only:**
 ```bash
-curl -X GET http://localhost:3000/api/v1/assets/filters
+curl -X GET "http://localhost:3000/api/v1/assets/filters?page=1&limit=10"
 ```
 
 **Get stickers only:**
 ```bash
-curl -X GET http://localhost:3000/api/v1/assets/stickers
+curl -X GET "http://localhost:3000/api/v1/assets/stickers?page=1&limit=10"
 ```
 
 **Get asset by ID:**
@@ -389,11 +582,17 @@ curl -X GET http://localhost:3000/api/v1/assets/123e4567-e89b-12d3-a456-42661417
 
 **Get all assets (admin):**
 ```bash
-curl -X GET http://localhost:3000/api/v1/admin/assets \
+curl -X GET "http://localhost:3000/api/v1/admin/assets?page=1&limit=10" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-**Upload asset file:**
+**Get assets filtered by type (admin):**
+```bash
+curl -X GET "http://localhost:3000/api/v1/admin/assets?page=1&limit=10&type=filter" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Upload asset file (frame):**
 ```bash
 curl -X POST http://localhost:3000/api/v1/admin/assets/upload \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -401,13 +600,33 @@ curl -X POST http://localhost:3000/api/v1/admin/assets/upload \
   -F "type=frame"
 ```
 
-**Create asset with URL:**
+**Upload filter asset with properties:**
+```bash
+curl -X POST http://localhost:3000/api/v1/admin/assets/upload \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@filter1.jpg" \
+  -F "type=filter" \
+  -F "filterType=cool" \
+  -F "scale=2.5" \
+  -F "offset_y=-100" \
+  -F "anchor_idx=10" \
+  -F "left_idx=10" \
+  -F "right_idx=10"
+```
+
+**Create asset with URL (filter with properties):**
 ```bash
 curl -X POST http://localhost:3000/api/v1/admin/assets \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "frame"
+    "type": "filter",
+    "filterType": "cool",
+    "scale": 2.5,
+    "offset_y": -100,
+    "anchor_idx": 10,
+    "left_idx": 10,
+    "right_idx": 10
   }'
 ```
 

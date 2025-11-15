@@ -95,6 +95,37 @@ export class AdminController {
           description: 'Asset type',
           example: 'frame',
         },
+        filterType: {
+          type: 'string',
+          enum: ['cute', 'cool', 'poetic'],
+          description: 'Filter type (only for filter type)',
+          example: 'cool',
+        },
+        scale: {
+          type: 'number',
+          description: 'Scale value',
+          example: 2.5,
+        },
+        offset_y: {
+          type: 'number',
+          description: 'Offset Y value',
+          example: -100,
+        },
+        anchor_idx: {
+          type: 'number',
+          description: 'Anchor index',
+          example: 10,
+        },
+        left_idx: {
+          type: 'number',
+          description: 'Left index',
+          example: 10,
+        },
+        right_idx: {
+          type: 'number',
+          description: 'Right index',
+          example: 10,
+        },
       },
       required: ['file', 'type'],
     },
@@ -120,8 +151,22 @@ export class AdminController {
     )
     file: Express.Multer.File,
     @Body('type') type: AssetType,
+    @Body('filterType') filterType?: string,
+    @Body('scale') scale?: number,
+    @Body('offset_y') offset_y?: number,
+    @Body('anchor_idx') anchor_idx?: number,
+    @Body('left_idx') left_idx?: number,
+    @Body('right_idx') right_idx?: number,
   ) {
-    return this.assetService.uploadAsset(file, type);
+    const additionalData: any = {};
+    if (filterType) additionalData.filterType = filterType;
+    if (scale !== undefined) additionalData.scale = Number(scale);
+    if (offset_y !== undefined) additionalData.offset_y = Number(offset_y);
+    if (anchor_idx !== undefined) additionalData.anchor_idx = Number(anchor_idx);
+    if (left_idx !== undefined) additionalData.left_idx = Number(left_idx);
+    if (right_idx !== undefined) additionalData.right_idx = Number(right_idx);
+    
+    return this.assetService.uploadAsset(file, type, Object.keys(additionalData).length > 0 ? additionalData : undefined);
   }
 
   @Post()

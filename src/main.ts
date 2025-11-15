@@ -8,12 +8,9 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   // Enable WebSocket adapter
   app.useWebSocketAdapter(new IoAdapter(app));
-
-  // Serve static files from public directory
-  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   // Enable CORS for all origins
   app.enableCors({
@@ -43,13 +40,13 @@ async function bootstrap() {
     .setTitle('NestJS API')
     .setDescription('API documentation for NestJS application')
     .setVersion('1.0')
-      .addTag('auth', 'Authentication endpoints')
-      .addTag('users', 'User management endpoints')
-      .addTag('health', 'Health check endpoints')
-      .addTag('public-assets', 'Public asset endpoints')
-      .addTag('admin-assets', 'Admin asset management endpoints')
-      .addTag('public-photobooth', 'Public photobooth endpoints')
-      .addTag('admin-photobooth', 'Admin photobooth management endpoints')
+    .addTag('auth', 'Authentication endpoints')
+    .addTag('users', 'User management endpoints')
+    .addTag('health', 'Health check endpoints')
+    .addTag('public-assets', 'Public asset endpoints')
+    .addTag('admin-assets', 'Admin asset management endpoints')
+    .addTag('public-photobooth', 'Public photobooth endpoints')
+    .addTag('admin-photobooth', 'Admin photobooth management endpoints')
     .addBearerAuth(
       {
         type: 'http',
@@ -64,10 +61,18 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document, {
+  SwaggerModule.setup('/api', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
+    customSiteTitle: 'Photobooth API Documentation',
+    explorer: true,
+  });
+
+  // Serve static files from public directory (after Swagger setup)
+  // Use a different prefix to avoid conflict with Swagger
+  app.useStaticAssets(join(__dirname, '..', 'public'), {
+    prefix: '/static',
   });
 
   await app.listen(3000);

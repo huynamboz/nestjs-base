@@ -7,7 +7,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { AssetService } from '../services/asset.service';
-import { AssetResponseDto } from '../dto/asset.dto';
+import { AssetResponseDto, AssetQueryDto } from '../dto/asset.dto';
 import { AssetType } from '../entities/asset.entity';
 import {
   PaginationDto,
@@ -39,13 +39,19 @@ export class PublicController {
     type: String,
     description: 'Search term for filtering assets',
   })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: AssetType,
+    description: 'Filter by asset type (frame, filter, sticker)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Paginated list of all assets retrieved successfully',
     type: PaginatedResponseDto<AssetResponseDto>,
   })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return this.assetService.findAllPaginated(paginationDto);
+  async findAll(@Query() queryDto: AssetQueryDto) {
+    return this.assetService.findAllPaginated(queryDto);
   }
 
   @Get('frames')
