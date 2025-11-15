@@ -1,8 +1,8 @@
 pipeline {
-    agent any
+    agent { label 'docker-agent' }
 
     stages {
-        
+
         stage('Checkout') {
             steps {
                 git branch: 'backend', url: 'https://github.com/ASasori/Photobooth.git'
@@ -12,7 +12,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    echo "Building Docker image for backend..."
+                    echo Building Docker image for backend...
                     docker compose build
                 '''
             }
@@ -21,10 +21,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    echo "Stopping old containers..."
+                    echo Deploying...
                     docker compose down
-
-                    echo "Starting new containers..."
                     docker compose up -d
                 '''
             }
@@ -32,11 +30,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Backend Deploy Successful!"
-        }
-        failure {
-            echo "Backend Deploy Failed!"
-        }
+        success { echo "Deploy DONE!" }
+        failure { echo "Deploy FAILED!" }
     }
 }
