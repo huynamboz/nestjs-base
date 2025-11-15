@@ -79,6 +79,15 @@ export class CompleteSessionDto {
   completedAt?: string;
 }
 
+export class ChangeFilterDto {
+  @ApiProperty({
+    description: 'Filter ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsUUID('4', { message: 'Filter ID must be a valid UUID' })
+  filterId: string;
+}
+
 export class SessionResponseDto {
   @ApiProperty({
     description: 'Session ID (UUID)',

@@ -61,6 +61,9 @@ export class Session {
   @Column({ nullable: true })
   notes?: string;
 
+  @Column({ nullable: true })
+  filterId?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

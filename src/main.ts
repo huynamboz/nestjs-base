@@ -1,10 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  
+  // Enable WebSocket adapter
+  app.useWebSocketAdapter(new IoAdapter(app));
+
+  // Serve static files from public directory
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   // Enable CORS for all origins
   app.enableCors({

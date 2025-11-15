@@ -30,6 +30,7 @@ import { SessionService } from '../services/session.service';
 import { PhotoService } from '../services/photo.service';
 import { PhotoboothService } from '../services/photobooth.service';
 import { CloudinaryService } from '../../photo/services/cloudinary.service';
+import { PhotoboothGateway } from '../gateways/photobooth.gateway';
 import {
   CreateSessionDto,
   StartSessionDto,
@@ -55,6 +56,7 @@ export class PublicController {
     private readonly photoService: PhotoService,
     private readonly photoboothService: PhotoboothService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly photoboothGateway: PhotoboothGateway,
   ) {}
 
   @Get('status')
@@ -133,7 +135,14 @@ export class PublicController {
     @Body() createSessionDto: CreateSessionDto,
     @Request() req: any,
   ) {
-    return this.sessionService.create(createSessionDto, req.user?.id);
+    const session = await this.sessionService.create(createSessionDto, req.user?.id);
+    
+    // Emit WebSocket message to all connected clients
+    if (req.user?.id) {
+      this.photoboothGateway.emitStartSession(req.user.id);
+    }
+    
+    return session;
   }
 
   @Get('sessions/:id')

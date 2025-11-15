@@ -324,6 +324,25 @@ export class SessionService {
     return this.findOne(id);
   }
 
+  async changeFilter(id: string, filterId: string): Promise<Session> {
+    const session = await this.findOne(id);
+
+    // Prevent updating completed or cancelled sessions
+    if (
+      session.status === SessionStatus.COMPLETED ||
+      session.status === SessionStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Cannot change filter for completed or cancelled session',
+      );
+    }
+
+    session.filterId = filterId;
+    await this.sessionRepository.save(session);
+
+    return this.findOne(id);
+  }
+
   async remove(id: string): Promise<{ message: string }> {
     const session = await this.findOne(id);
 
