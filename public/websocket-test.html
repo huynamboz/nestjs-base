@@ -323,12 +323,13 @@
       connectBtn.disabled = true;
       disconnectBtn.disabled = false;
 
-      // Connect to WebSocket namespace
+      // Connect to Socket.IO namespace với HTTP long polling only
       socket = io(`${serverUrl}/photobooth`, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling'], // Chỉ sử dụng HTTP long polling
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
+        forceNew: true, // Force new connection
       });
 
       socket.on('connect', () => {

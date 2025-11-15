@@ -13,6 +13,8 @@ import { Logger } from '@nestjs/common';
     credentials: true,
   },
   namespace: '/photobooth',
+  transports: ['polling'], // Chỉ sử dụng HTTP long polling
+  allowEIO3: true, // Cho phép Socket.IO v3 clients
 })
 export class PhotoboothGateway
   implements OnGatewayConnection, OnGatewayDisconnect
