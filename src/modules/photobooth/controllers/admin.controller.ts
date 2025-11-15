@@ -402,7 +402,19 @@ export class AdminController {
   @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async cancelSession(@Param('id') id: string) {
-    return this.sessionService.cancelSession(id);
+    // Get session info before cancelling to emit WebSocket message
+    const session = await this.sessionService.findOne(id);
+    const userId = session.userId;
+    
+    // Cancel session
+    const result = await this.sessionService.cancelSession(id);
+    
+    // Emit WebSocket message to all connected clients
+    if (userId) {
+      this.photoboothGateway.emitStopSession(userId);
+    }
+    
+    return result;
   }
 
   @Post('sessions/:id/start-capture')

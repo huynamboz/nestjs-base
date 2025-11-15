@@ -205,7 +205,19 @@ export class PublicController {
     @Param('id') id: string,
     @Body() completeSessionDto: CompleteSessionDto,
   ) {
-    return this.sessionService.completeSession(id, completeSessionDto);
+    // Get session info before completing to emit WebSocket message
+    const session = await this.sessionService.findOne(id);
+    const userId = session.userId;
+    
+    // Complete session
+    const result = await this.sessionService.completeSession(id, completeSessionDto);
+    
+    // Emit WebSocket message to all connected clients
+    if (userId) {
+      this.photoboothGateway.emitStopSession(userId);
+    }
+    
+    return result;
   }
 
   @Put('sessions/:id/cancel')
@@ -224,7 +236,19 @@ export class PublicController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async cancelSession(@Param('id') id: string) {
-    return this.sessionService.cancelSession(id);
+    // Get session info before cancelling to emit WebSocket message
+    const session = await this.sessionService.findOne(id);
+    const userId = session.userId;
+    
+    // Cancel session
+    const result = await this.sessionService.cancelSession(id);
+    
+    // Emit WebSocket message to all connected clients
+    if (userId) {
+      this.photoboothGateway.emitStopSession(userId);
+    }
+    
+    return result;
   }
 
   @Get('sessions/:id/photos')
