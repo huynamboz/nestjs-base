@@ -25,10 +25,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { AssetService } from '../services/asset.service';
-import { CreateAssetDto, AssetResponseDto } from '../dto/asset.dto';
+import { CreateAssetDto, AssetResponseDto, AssetQueryDto } from '../dto/asset.dto';
 import { AssetType } from '../entities/asset.entity';
 import {
-  PaginationDto,
   PaginatedResponseDto,
 } from '../../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -64,6 +63,12 @@ export class AdminController {
     type: String,
     description: 'Search term for filtering assets',
   })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: AssetType,
+    description: 'Filter by asset type (frame/filter/sticker)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Paginated list of all assets retrieved successfully',
@@ -71,8 +76,8 @@ export class AdminController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return this.assetService.findAllPaginated(paginationDto);
+  async findAll(@Query() queryDto: AssetQueryDto) {
+    return this.assetService.findAllPaginated(queryDto);
   }
 
   @Post('upload')

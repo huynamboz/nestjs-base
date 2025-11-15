@@ -61,8 +61,8 @@ export class Session {
   @Column({ nullable: true })
   notes?: string;
 
-  @Column({ nullable: true })
-  filterId?: string;
+  @Column('text', { array: true, nullable: true, default: [] })
+  filterIds?: string[];
 
   @CreateDateColumn()
   createdAt: Date;

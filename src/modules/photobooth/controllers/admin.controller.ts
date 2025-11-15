@@ -28,7 +28,8 @@ import {
   CreateSessionDto,
   UpdateSessionDto,
   SessionResponseDto,
-  ChangeFilterDto,
+  AddFilterDto,
+  DeleteFilterDto,
 } from '../dto/session.dto';
 import {
   CreatePhotoDto,
@@ -417,85 +418,77 @@ export class AdminController {
     return result;
   }
 
-  @Post('sessions/:id/start-capture')
+  @Post('sessions/:id/filters')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Start capture for session (Admin only)',
-    description: 'Emit WebSocket message to start capture for a session',
+    summary: 'Add filter to session (Admin only)',
+    description: 'Add a filter ID to the session filterIds array',
   })
   @ApiParam({
     name: 'id',
     description: 'Session ID (UUID)',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
+  @ApiBody({ type: AddFilterDto })
   @ApiResponse({
     status: 200,
-    description: 'Start capture message sent successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Start capture message sent for session 123e4567-e89b-12d3-a456-426614174000',
-        },
-        sessionId: {
-          type: 'string',
-          example: '123e4567-e89b-12d3-a456-426614174000',
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
-  @ApiResponse({ status: 404, description: 'Session not found' })
-  async startCapture(@Param('id') sessionId: string) {
-    // Verify session exists
-    await this.sessionService.findOne(sessionId);
-    
-    // Emit WebSocket message
-    this.photoboothGateway.emitStartCapture(sessionId);
-    
-    return {
-      message: `Start capture message sent for session ${sessionId}`,
-      sessionId,
-    };
-  }
-
-  @Post('sessions/:id/change-filter')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Change filter for session (Admin only)',
-    description: 'Update session filter ID and emit WebSocket message',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Session ID (UUID)',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiBody({ type: ChangeFilterDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Filter changed successfully',
+    description: 'Filter added to session successfully',
     type: SessionResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Cannot change filter for completed or cancelled session' })
+  @ApiResponse({ status: 400, description: 'Bad request - Cannot add filter to completed or cancelled session' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async changeFilter(
-    @Param('id') sessionId: string,
-    @Body() changeFilterDto: ChangeFilterDto,
+  @ApiResponse({ status: 409, description: 'Filter already exists in session' })
+  async addFilter(
+    @Param('id') id: string,
+    @Body() addFilterDto: AddFilterDto,
   ) {
-    // Update session filter ID
-    const session = await this.sessionService.changeFilter(
-      sessionId,
-      changeFilterDto.filterId,
-    );
+    // Add filter to session
+    const result = await this.sessionService.addFilter(id, addFilterDto.filterId);
     
-    // Emit WebSocket message
-    this.photoboothGateway.emitChangeFilter(changeFilterDto.filterId);
+    // Emit WebSocket message to all connected clients
+    this.photoboothGateway.emitAddFilter(addFilterDto.filterId);
     
-    return session;
+    return result;
+  }
+
+  @Delete('sessions/:id/filters/:filterId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Remove filter from session (Admin only)',
+    description: 'Remove a filter ID from the session filterIds array',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Session ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiParam({
+    name: 'filterId',
+    description: 'Filter ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Filter removed from session successfully',
+    type: SessionResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Cannot remove filter from completed or cancelled session' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  @ApiResponse({ status: 404, description: 'Session or filter not found' })
+  async deleteFilter(
+    @Param('id') id: string,
+    @Param('filterId') filterId: string,
+  ) {
+    // Remove filter from session
+    const result = await this.sessionService.removeFilter(id, filterId);
+    
+    // Emit WebSocket message to all connected clients
+    this.photoboothGateway.emitDeleteFilter(filterId);
+    
+    return result;
   }
 
   // Photo Management

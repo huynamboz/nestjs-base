@@ -63,4 +63,20 @@ export class PhotoboothGateway
       data: { filter_id: filterId },
     });
   }
+
+  emitAddFilter(filterId: string) {
+    this.logger.log(`Emitting add_filter for filter: ${filterId}`);
+    this.server.emit('add_filter', {
+      type: 'add_filter',
+      data: { filter_id: filterId },
+    });
+  }
+
+  emitDeleteFilter(filterId: string) {
+    this.logger.log(`Emitting delete_filter for filter: ${filterId}`);
+    this.server.emit('delete_filter', {
+      type: 'delete_filter',
+      data: { filter_id: filterId },
+    });
+  }
 }

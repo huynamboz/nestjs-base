@@ -337,7 +337,108 @@ export class SessionService {
       );
     }
 
-    session.filterId = filterId;
+    // Initialize filterIds array if it doesn't exist
+    if (!session.filterIds) {
+      session.filterIds = [];
+    }
+
+    // Check if filter already exists
+    if (session.filterIds.includes(filterId)) {
+      throw new ConflictException('Filter already exists in session');
+    }
+
+    // Add filter to array
+    session.filterIds.push(filterId);
+    await this.sessionRepository.save(session);
+
+    return this.findOne(id);
+  }
+
+  async removeFilterFromChange(id: string, filterId: string): Promise<Session> {
+    const session = await this.findOne(id);
+
+    // Prevent updating completed or cancelled sessions
+    if (
+      session.status === SessionStatus.COMPLETED ||
+      session.status === SessionStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Cannot change filter for completed or cancelled session',
+      );
+    }
+
+    // Initialize filterIds array if it doesn't exist
+    if (!session.filterIds) {
+      session.filterIds = [];
+    }
+
+    // Check if filter exists
+    if (!session.filterIds.includes(filterId)) {
+      throw new NotFoundException('Filter not found in session');
+    }
+
+    // Remove filter from array
+    session.filterIds = session.filterIds.filter((id) => id !== filterId);
+    await this.sessionRepository.save(session);
+
+    return this.findOne(id);
+  }
+
+  async addFilter(id: string, filterId: string): Promise<Session> {
+    const session = await this.findOne(id);
+
+    // Prevent updating completed or cancelled sessions
+    if (
+      session.status === SessionStatus.COMPLETED ||
+      session.status === SessionStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Cannot add filter to completed or cancelled session',
+      );
+    }
+
+    // Initialize filterIds array if it doesn't exist
+    if (!session.filterIds) {
+      session.filterIds = [];
+    }
+
+    // Check if filter already exists
+    if (session.filterIds.includes(filterId)) {
+      throw new ConflictException('Filter already exists in session');
+    }
+
+    // Add filter to array
+    session.filterIds.push(filterId);
+    await this.sessionRepository.save(session);
+
+    return this.findOne(id);
+  }
+
+  async removeFilter(id: string, filterId: string): Promise<Session> {
+    const session = await this.findOne(id);
+
+    // Prevent updating completed or cancelled sessions
+    if (
+      session.status === SessionStatus.COMPLETED ||
+      session.status === SessionStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Cannot remove filter from completed or cancelled session',
+      );
+    }
+
+    // Initialize filterIds array if it doesn't exist
+    if (!session.filterIds) {
+      session.filterIds = [];
+    }
+
+    // Check if filter exists
+    if (!session.filterIds.includes(filterId)) {
+      throw new NotFoundException('Filter not found in session');
+    }
+
+    // Remove filter from array
+    session.filterIds = session.filterIds.filter((id) => id !== filterId);
     await this.sessionRepository.save(session);
 
     return this.findOne(id);

@@ -289,85 +289,167 @@ Hủy phiên chụp hình.
 - `400`: Session already completed
 - `404`: Session not found
 
-### 8. Add Photo to Session
-Thêm ảnh vào session.
+### 8. Add Filter to Session
+Thêm filter ID vào danh sách filters của session. Mỗi session có thể có nhiều filters.
 
-**Endpoint:** `POST /api/v1/photobooth/sessions/{id}/photos`
+**Endpoint:** `POST /api/v1/photobooth/sessions/{id}/filters`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Path Parameters:**
+- `id` (string, required): Session ID (UUID)
 
 **Request Body:**
 ```json
 {
-  "imageUrl": "https://example.com/photo1.jpg",
-  "publicId": "photobooth/session1/photo1", // Optional
-  "thumbnailUrl": "https://example.com/thumb1.jpg", // Optional
-  "caption": "First photo", // Optional
-  "order": 1 // Optional, auto-increment if not provided
+  "filterId": "123e4567-e89b-12d3-a456-426614174000"
 }
 ```
 
 **Response:**
 ```json
 {
-  "id": "abc12345-e89b-12d3-a456-426614174003",
-  "sessionId": "789e0123-e89b-12d3-a456-426614174002",
-  "imageUrl": "https://example.com/photo1.jpg",
-  "publicId": "photobooth/session1/photo1",
-  "thumbnailUrl": "https://example.com/thumb1.jpg",
-  "order": 1,
-  "caption": "First photo",
-  "isProcessed": false,
-  "processedAt": null,
-  "createdAt": "2024-01-01T00:10:00.000Z",
-  "updatedAt": "2024-01-01T00:10:00.000Z"
+  "id": "789e0123-e89b-12d3-a456-426614174002",
+  "status": "active",
+  "userId": "456e7890-e89b-12d3-a456-426614174001",
+  "photoboothId": "123e4567-e89b-12d3-a456-426614174000",
+  "filterIds": [
+    "123e4567-e89b-12d3-a456-426614174000",
+    "456e7890-e89b-12d3-a456-426614174001"
+  ],
+  "photoCount": 1,
+  "maxPhotos": 5,
+  "startedAt": "2024-01-01T00:05:00.000Z",
+  "completedAt": null,
+  "expiresAt": "2024-01-01T00:30:00.000Z",
+  "notes": "Birthday party session",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:05:00.000Z"
 }
 ```
 
 **Status Codes:**
-- `201`: Photo added successfully
-- `400`: Session not active or max photos reached
+- `200`: Filter added successfully
+- `400`: Bad request - Cannot add filter to completed or cancelled session
 - `404`: Session not found
+- `409`: Filter already exists in session
 
-### 9. Get Session Photos
-Lấy danh sách ảnh trong session.
+**WebSocket Event:**
+Khi filter được thêm thành công, hệ thống sẽ emit WebSocket message:
+```json
+{
+  "type": "add_filter",
+  "data": { "filter_id": "123e4567-e89b-12d3-a456-426614174000" }
+}
+```
 
-**Endpoint:** `GET /api/v1/photobooth/sessions/{id}/photos`
+### 9. Remove Filter from Session
+Xóa filter ID khỏi danh sách filters của session.
 
-**Query Parameters:**
-- `page` (optional): Page number (default: 1)
-- `limit` (optional): Items per page (default: 10, max: 100)
-- `search` (optional): Search in captions
+**Endpoint:** `DELETE /api/v1/photobooth/sessions/{id}/filters/{filterId}`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `id` (string, required): Session ID (UUID)
+- `filterId` (string, required): Filter ID (UUID) cần xóa
 
 **Response:**
 ```json
 {
-  "data": [
-    {
-      "id": "abc12345-e89b-12d3-a456-426614174003",
-      "sessionId": "789e0123-e89b-12d3-a456-426614174002",
-      "imageUrl": "https://example.com/photo1.jpg",
-      "order": 1,
-      "caption": "First photo",
-      "isProcessed": false,
-      "createdAt": "2024-01-01T00:10:00.000Z"
-    }
+  "id": "789e0123-e89b-12d3-a456-426614174002",
+  "status": "active",
+  "userId": "456e7890-e89b-12d3-a456-426614174001",
+  "photoboothId": "123e4567-e89b-12d3-a456-426614174000",
+  "filterIds": [
+    "123e4567-e89b-12d3-a456-426614174000"
   ],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 1,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
-  }
+  "photoCount": 1,
+  "maxPhotos": 5,
+  "startedAt": "2024-01-01T00:05:00.000Z",
+  "completedAt": null,
+  "expiresAt": "2024-01-01T00:30:00.000Z",
+  "notes": "Birthday party session",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:05:00.000Z"
 }
 ```
 
-### 10. Get Photo
-Lấy thông tin chi tiết ảnh.
+**Status Codes:**
+- `200`: Filter removed successfully
+- `400`: Bad request - Cannot remove filter from completed or cancelled session
+- `404`: Session or filter not found
 
-**Endpoint:** `GET /api/v1/photobooth/photos/{id}`
+**WebSocket Event:**
+Khi filter được xóa thành công, hệ thống sẽ emit WebSocket message:
+```json
+{
+  "type": "delete_filter",
+  "data": { "filter_id": "123e4567-e89b-12d3-a456-426614174000" }
+}
+```
 
-**Response:** Same as Add Photo response.
+### 10. Start Capture
+Bắt đầu chụp ảnh cho session. API này sẽ emit WebSocket message để báo hiệu bắt đầu chụp.
+
+**Endpoint:** `POST /api/v1/photobooth/sessions/{id}/start-capture`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `id` (string, required): Session ID (UUID)
+
+**Response:**
+```json
+{
+  "message": "Start capture message sent for session 123e4567-e89b-12d3-a456-426614174000",
+  "sessionId": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+**Status Codes:**
+- `200`: Start capture message sent successfully
+- `404`: Session not found
+
+**WebSocket Event:**
+Khi API được gọi, hệ thống sẽ emit WebSocket message:
+```json
+{
+  "type": "start_capture",
+  "data": { "session_id": "123e4567-e89b-12d3-a456-426614174000" }
+}
+```
+
+### 11. Change Filter
+Thêm hoặc xóa filter trong mảng `filterIds` của session. Xem chi tiết tại [Change Filter API Documentation](./change-filter-api.md).
+
+**Endpoints:**
+- `POST /api/v1/photobooth/sessions/{id}/change-filter` - Thêm filter vào mảng
+- `DELETE /api/v1/photobooth/sessions/{id}/change-filter/{filterId}` - Xóa filter khỏi mảng
+
+**Quick Reference:**
+- **POST Method:** Thêm filterId vào mảng `filterIds`
+- **DELETE Method:** Xóa filterId khỏi mảng `filterIds`
+- **Authentication:** Required (JWT)
+- **Path Parameter:** `id` - Session ID (UUID), `filterId` - Filter ID (UUID) cho DELETE
+- **Request Body (POST):** `{ "filterId": "uuid" }`
+- **Response:** Session object với `filterIds` đã được cập nhật
+- **WebSocket Events:** 
+  - POST emits `add_filter` message
+  - DELETE emits `delete_filter` message
+
+### 12. Session Photos
+Quản lý ảnh trong session. Xem chi tiết tại [Session Photo API Documentation](./session-photo-api.md).
 
 ## Admin Endpoints (Cần authentication + admin role)
 
@@ -579,7 +661,127 @@ Xóa session.
 - `400`: Cannot delete active session
 - `404`: Session not found
 
-### 9. Get All Photos
+**WebSocket Event:**
+Khi session được xóa thành công, hệ thống sẽ emit WebSocket message:
+```json
+{
+  "type": "stop_session",
+  "data": { "user_id": "456e7890-e89b-12d3-a456-426614174001" }
+}
+```
+
+### 9. Add Filter to Session (Admin)
+Thêm filter ID vào danh sách filters của session (Admin only).
+
+**Endpoint:** `POST /api/v1/admin/photobooth/sessions/{id}/filters`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Path Parameters:**
+- `id` (string, required): Session ID (UUID)
+
+**Request Body:**
+```json
+{
+  "filterId": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "789e0123-e89b-12d3-a456-426614174002",
+  "status": "active",
+  "userId": "456e7890-e89b-12d3-a456-426614174001",
+  "photoboothId": "123e4567-e89b-12d3-a456-426614174000",
+  "filterIds": [
+    "123e4567-e89b-12d3-a456-426614174000",
+    "456e7890-e89b-12d3-a456-426614174001"
+  ],
+  "photoCount": 1,
+  "maxPhotos": 5,
+  "startedAt": "2024-01-01T00:05:00.000Z",
+  "completedAt": null,
+  "expiresAt": "2024-01-01T00:30:00.000Z",
+  "notes": "Birthday party session",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:05:00.000Z"
+}
+```
+
+**Status Codes:**
+- `200`: Filter added successfully
+- `400`: Bad request - Cannot add filter to completed or cancelled session
+- `401`: Unauthorized
+- `403`: Forbidden - Admin role required
+- `404`: Session not found
+- `409`: Filter already exists in session
+
+**WebSocket Event:**
+Khi filter được thêm thành công, hệ thống sẽ emit WebSocket message:
+```json
+{
+  "type": "add_filter",
+  "data": { "filter_id": "123e4567-e89b-12d3-a456-426614174000" }
+}
+```
+
+### 10. Remove Filter from Session (Admin)
+Xóa filter ID khỏi danh sách filters của session (Admin only).
+
+**Endpoint:** `DELETE /api/v1/admin/photobooth/sessions/{id}/filters/{filterId}`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `id` (string, required): Session ID (UUID)
+- `filterId` (string, required): Filter ID (UUID) cần xóa
+
+**Response:**
+```json
+{
+  "id": "789e0123-e89b-12d3-a456-426614174002",
+  "status": "active",
+  "userId": "456e7890-e89b-12d3-a456-426614174001",
+  "photoboothId": "123e4567-e89b-12d3-a456-426614174000",
+  "filterIds": [
+    "123e4567-e89b-12d3-a456-426614174000"
+  ],
+  "photoCount": 1,
+  "maxPhotos": 5,
+  "startedAt": "2024-01-01T00:05:00.000Z",
+  "completedAt": null,
+  "expiresAt": "2024-01-01T00:30:00.000Z",
+  "notes": "Birthday party session",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:05:00.000Z"
+}
+```
+
+**Status Codes:**
+- `200`: Filter removed successfully
+- `400`: Bad request - Cannot remove filter from completed or cancelled session
+- `401`: Unauthorized
+- `403`: Forbidden - Admin role required
+- `404`: Session or filter not found
+
+**WebSocket Event:**
+Khi filter được xóa thành công, hệ thống sẽ emit WebSocket message:
+```json
+{
+  "type": "delete_filter",
+  "data": { "filter_id": "123e4567-e89b-12d3-a456-426614174000" }
+}
+```
+
+### 11. Get All Photos
 Lấy danh sách tất cả photos với pagination.
 
 **Endpoint:** `GET /api/v1/admin/photobooth/photos`
@@ -614,7 +816,7 @@ Lấy danh sách tất cả photos với pagination.
 }
 ```
 
-### 10. Update Photo
+### 12. Update Photo
 Cập nhật thông tin photo.
 
 **Endpoint:** `PUT /api/v1/admin/photobooth/photos/{id}`
@@ -630,7 +832,7 @@ Cập nhật thông tin photo.
 
 **Response:** Same as Get Photo response.
 
-### 11. Delete Photo
+### 13. Delete Photo
 Xóa photo.
 
 **Endpoint:** `DELETE /api/v1/admin/photobooth/photos/{id}`
@@ -642,7 +844,7 @@ Xóa photo.
 }
 ```
 
-### 12. Get System Statistics
+### 14. Get System Statistics
 Lấy thống kê tổng quan hệ thống.
 
 **Endpoint:** `GET /api/v1/admin/photobooth/stats`
@@ -677,7 +879,7 @@ Lấy thống kê tổng quan hệ thống.
 }
 ```
 
-### 13. Cleanup Expired Sessions
+### 15. Cleanup Expired Sessions
 Dọn dẹp các session đã hết hạn.
 
 **Endpoint:** `POST /api/v1/admin/photobooth/cleanup/expired-sessions`

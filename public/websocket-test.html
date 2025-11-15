@@ -383,9 +383,19 @@
         addMessage(message);
       });
 
+      // Listen for add_filter event
+      socket.on('add_filter', (message) => {
+        addMessage(message);
+      });
+
+      // Listen for delete_filter event
+      socket.on('delete_filter', (message) => {
+        addMessage(message);
+      });
+
       // Listen for any other events
       socket.onAny((eventName, ...args) => {
-        if (eventName !== 'start_session' && eventName !== 'stop_session' && eventName !== 'start_capture' && eventName !== 'change_filter' && eventName !== 'connect' && eventName !== 'disconnect') {
+        if (eventName !== 'start_session' && eventName !== 'stop_session' && eventName !== 'start_capture' && eventName !== 'change_filter' && eventName !== 'add_filter' && eventName !== 'delete_filter' && eventName !== 'connect' && eventName !== 'disconnect') {
           addMessage({
             type: eventName,
             data: args,

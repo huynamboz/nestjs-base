@@ -88,6 +88,24 @@ export class ChangeFilterDto {
   filterId: string;
 }
 
+export class AddFilterDto {
+  @ApiProperty({
+    description: 'Filter ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsUUID('4', { message: 'Filter ID must be a valid UUID' })
+  filterId: string;
+}
+
+export class DeleteFilterDto {
+  @ApiProperty({
+    description: 'Filter ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsUUID('4', { message: 'Filter ID must be a valid UUID' })
+  filterId: string;
+}
+
 export class SessionResponseDto {
   @ApiProperty({
     description: 'Session ID (UUID)',
@@ -186,6 +204,13 @@ export class SessionResponseDto {
     example: '2024-01-01T11:00:00.000Z',
   })
   expiresAt?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Array of filter IDs',
+    type: [String],
+    example: ['123e4567-e89b-12d3-a456-426614174000', '456e7890-e89b-12d3-a456-426614174001'],
+  })
+  filterIds?: string[];
 
   @ApiPropertyOptional({
     description: 'Session notes',
