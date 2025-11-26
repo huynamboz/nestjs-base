@@ -30,6 +30,12 @@ export class User {
   @Column({ nullable: true })
   address?: string;
 
+  @Column({ type: 'int', default: 0 })
+  points: number;
+
+  @Column({ unique: true, length: 8, nullable: true })
+  paymentCode?: string;
+
   @Column({ nullable: true })
   roleId?: string;
 

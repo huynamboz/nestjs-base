@@ -3,6 +3,10 @@ set -e
 
 echo "🚀 Starting application in development mode..."
 
+# Always install/update dependencies
+echo "📦 Installing dependencies..."
+yarn install --frozen-lockfile
+
 # Wait for database to be ready
 echo "⏳ Waiting for database to be ready..."
 until nc -z ${DB_HOST:-postgres} ${DB_PORT:-5432} 2>/dev/null; do
@@ -16,17 +20,17 @@ sleep 2
 
 # Run migrations (only if not already run)
 echo "📦 Running database migrations..."
-npm run migration:run || echo "⚠️  Migration failed or no migrations to run"
+yarn migration:run || echo "⚠️  Migration failed or no migrations to run"
 
 # Seed roles if needed
 echo "🌱 Seeding roles..."
-npm run seed:roles || echo "⚠️  Role seeding failed or already exists"
+yarn seed:roles || echo "⚠️  Role seeding failed or already exists"
 
 # Seed admin if needed
 echo "👤 Seeding admin user..."
-npm run seed:admin || echo "⚠️  Admin seeding failed or already exists"
+yarn seed:admin || echo "⚠️  Admin seeding failed or already exists"
 
 # Start the application in dev mode (with hot reload)
 echo "🎉 Starting NestJS application in development mode..."
-exec npm run start:dev
+exec yarn start:dev
 

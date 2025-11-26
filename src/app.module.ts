@@ -7,6 +7,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { PhotoModule } from './modules/photo/photo.module';
 import { PhotoboothModule } from './modules/photobooth/photobooth.module';
+import { WebhookModule } from './modules/webhook/webhook.module';
+import { BankModule } from './modules/bank/bank.module';
 import { databaseConfig } from './config/database.config';
 
 @Module({
@@ -20,6 +22,8 @@ import { databaseConfig } from './config/database.config';
     HealthModule,
     PhotoModule,
     PhotoboothModule,
+    WebhookModule,
+    BankModule,
   ],
   controllers: [AppController],
   providers: [],

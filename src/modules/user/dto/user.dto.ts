@@ -7,6 +7,8 @@ import {
   IsOptional,
   Matches,
   IsUUID,
+  IsInt,
+  Min,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -179,4 +181,29 @@ export class UserResponseDto {
     description: 'User address',
   })
   address?: string;
+
+  @ApiPropertyOptional({
+    description: 'User points balance',
+    example: 1000,
+    default: 0,
+  })
+  points?: number;
+
+  @ApiPropertyOptional({
+    description: 'Payment code for bank transfers (6-8 alphanumeric characters)',
+    example: 'a1b2c3d4',
+  })
+  paymentCode?: string;
+}
+
+export class AddPointsDto {
+  @ApiProperty({
+    description: 'Number of points to add to user',
+    example: 100,
+    minimum: 1,
+  })
+  @IsInt({ message: 'Points must be an integer' })
+  @Min(1, { message: 'Points must be at least 1' })
+  @IsNotEmpty({ message: 'Points is required' })
+  points: number;
 }

@@ -50,11 +50,15 @@ services:
       # Mount source code for hot reload (read-write for file watching)
       - ./src:/app/src
       - ./package.json:/app/package.json
+      - ./yarn.lock:/app/yarn.lock
       - ./tsconfig.json:/app/tsconfig.json
       - ./tsconfig.build.json:/app/tsconfig.build.json
       - ./nest-cli.json:/app/nest-cli.json
       - ./ormconfig.ts:/app/ormconfig.ts
+      # Mount public folder for static files (if needed)
+      - ./public:/app/public
       # Preserve node_modules in container (don't override with host)
+      # Entrypoint will auto-install dependencies if package.json changes
       - node_modules_dev:/app/node_modules
     depends_on:
       postgres:

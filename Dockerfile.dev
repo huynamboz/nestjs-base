@@ -10,8 +10,18 @@ RUN apk add --no-cache netcat-openbsd
 COPY package*.json ./
 COPY yarn.lock* ./
 
-# Install all dependencies (including devDependencies)
-RUN npm ci && npm cache clean --force
+# Install all dependencies (including devDependencies for development)
+# Note: Dependencies will be auto-updated in entrypoint if package.json changes
+RUN yarn install --frozen-lockfile && yarn cache clean
+
+# Copy configuration files needed for migrations and builds
+COPY ormconfig.ts ./
+COPY tsconfig.json ./
+COPY tsconfig.build.json ./
+COPY nest-cli.json ./
+
+# Copy source code (will be overridden by volume mount in docker-compose for hot reload)
+COPY src ./src
 
 # Copy entrypoint script for dev
 COPY docker-entrypoint.dev.sh ./
@@ -29,6 +39,6 @@ USER nestjs
 # Expose port
 EXPOSE 3000
 
-# Development mode - no entrypoint, use command from docker-compose
-# This allows hot reload with volume mounts
+# Development mode - entrypoint script handles migrations and starts dev server
+# Volume mounts in docker-compose will override src for hot reload
 

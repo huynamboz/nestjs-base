@@ -5,6 +5,7 @@ import { Asset } from './src/modules/photo/entities/asset.entity';
 import { Photobooth } from './src/modules/photobooth/entities/photobooth.entity';
 import { Session } from './src/modules/photobooth/entities/session.entity';
 import { Photo } from './src/modules/photobooth/entities/photo.entity';
+import { BankInfo } from './src/modules/bank/entities/bank-info.entity';
 
 const config = new DataSource({
   type: 'postgres',
@@ -13,7 +14,7 @@ const config = new DataSource({
   username: process.env.DB_USERNAME || 'nestjs_user',
   password: process.env.DB_PASSWORD || 'nestjs_password',
   database: process.env.DB_NAME || 'nestjs_db',
-  entities: [User, Role, Asset, Photobooth, Session, Photo],
+  entities: [User, Role, Asset, Photobooth, Session, Photo, BankInfo],
   migrations: ['src/migrations/*.ts'],
   synchronize: false, // Tắt synchronize khi dùng migrations
 });

@@ -121,6 +121,104 @@ Authorization: Bearer <access_token>
 
 **Note:** Endpoint này chỉ tạo roles nếu chưa tồn tại. Nếu roles đã có, sẽ không tạo duplicate.
 
+### 4. Add Points to User
+Nạp point cho user. Chỉ admin mới có quyền thực hiện.
+
+**Endpoint:** `POST /api/v1/admin/users/{id}/add-points`
+
+**Path Parameters:**
+- `id` (string, required): User UUID
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "points": 100
+}
+```
+
+**Request Body Fields:**
+- `points` (integer, required): Số point muốn nạp (tối thiểu 1)
+
+**Response:**
+```json
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "phone": "0909090909",
+  "address": "123 Main St",
+  "points": 1100,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T12:00:00.000Z",
+  "role": {
+    "id": "user-role-uuid",
+    "name": "user",
+    "description": "Regular user"
+  }
+}
+```
+
+**Status Codes:**
+- `200`: Points added successfully
+- `400`: Bad request - Invalid points value (must be integer >= 1)
+- `401`: Unauthorized
+- `403`: Forbidden - Admin role required
+- `404`: User not found
+
+**Example Requests:**
+
+**cURL:**
+```bash
+curl -X POST http://localhost:3000/api/v1/admin/users/123e4567-e89b-12d3-a456-426614174000/add-points \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "points": 100
+  }'
+```
+
+**JavaScript (Fetch):**
+```javascript
+const response = await fetch('http://localhost:3000/api/v1/admin/users/123e4567-e89b-12d3-a456-426614174000/add-points', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    points: 100
+  })
+});
+
+const user = await response.json();
+console.log('Updated user:', user);
+```
+
+**JavaScript (Axios):**
+```javascript
+const axios = require('axios');
+
+const response = await axios.post(
+  'http://localhost:3000/api/v1/admin/users/123e4567-e89b-12d3-a456-426614174000/add-points',
+  {
+    points: 100
+  },
+  {
+    headers: {
+      'Authorization': 'Bearer YOUR_JWT_TOKEN'
+    }
+  }
+);
+
+console.log('Updated user:', response.data);
+```
+
 ## Role Management
 
 ### Available Roles
@@ -241,6 +339,16 @@ curl -X POST http://localhost:3000/api/v1/admin/users/USER_UUID/role \
 ```bash
 curl -X GET http://localhost:3000/api/v1/admin/seed-roles \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Add Points to User
+```bash
+curl -X POST http://localhost:3000/api/v1/admin/users/USER_UUID/add-points \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "points": 100
+  }'
 ```
 
 ## Admin Workflow Examples

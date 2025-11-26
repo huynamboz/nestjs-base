@@ -1,18 +1,139 @@
 # User Management API Documentation
 
 ## Overview
-User Management API cung cấp các endpoint để quản lý thông tin người dùng. Tất cả endpoints đều yêu cầu xác thực JWT và quyền ADMIN.
+User Management API cung cấp các endpoint để quản lý thông tin người dùng. Một số endpoints yêu cầu quyền ADMIN, một số endpoints có thể truy cập bởi bất kỳ user đã đăng nhập.
 
 **Base URL:** `http://localhost:3000/api/v1/users`
 
 ## Authentication
 Tất cả endpoints yêu cầu:
 - **JWT Token** trong header `Authorization: Bearer <token>`
-- **Role:** ADMIN (chỉ admin mới có thể quản lý users)
+- **Role:** Một số endpoints yêu cầu ADMIN role (được ghi chú rõ)
 
 ## Endpoints
 
-### 1. Get All Users (Paginated)
+### 1. Get Current User Information
+Lấy thông tin đầy đủ của user hiện tại (user đang đăng nhập). Bất kỳ user nào đã đăng nhập đều có thể truy cập endpoint này.
+
+**Endpoint:** `GET /api/v1/users/me`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:**
+```json
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "phone": "0909090909",
+  "address": "123 Main St",
+  "points": 1000,
+  "paymentCode": "a1b2c3d4",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "role": {
+    "id": "role-uuid",
+    "name": "user",
+    "description": "Regular user"
+  }
+}
+```
+
+**Status Codes:**
+- `200`: Success
+- `401`: Unauthorized - Invalid or missing token
+
+**Example Requests:**
+
+**cURL:**
+```bash
+curl -X GET http://localhost:3000/api/v1/users/me \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**JavaScript (Fetch):**
+```javascript
+const response = await fetch('http://localhost:3000/api/v1/users/me', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+
+const user = await response.json();
+console.log('Current user:', user);
+```
+
+**JavaScript (Axios):**
+```javascript
+const axios = require('axios');
+
+const response = await axios.get('http://localhost:3000/api/v1/users/me', {
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+
+console.log('Current user:', response.data);
+```
+
+**Note:** Nếu user chưa có `paymentCode`, hệ thống sẽ tự động generate khi gọi endpoint này.
+
+### 1.1. Get Payment Code
+Lấy hoặc tạo payment code cho user hiện tại. Payment code là mã ngắn (6-8 ký tự) dùng để nhận diện user khi nạp tiền qua ngân hàng.
+
+**Endpoint:** `GET /api/v1/users/me/payment-code`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:**
+```json
+{
+  "paymentCode": "a1b2c3d4",
+  "message": "Payment code generated successfully"
+}
+```
+
+**Status Codes:**
+- `200`: Success
+- `401`: Unauthorized
+
+**Example Requests:**
+
+**cURL:**
+```bash
+curl -X GET http://localhost:3000/api/v1/users/me/payment-code \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**JavaScript (Fetch):**
+```javascript
+const response = await fetch('http://localhost:3000/api/v1/users/me/payment-code', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+
+const data = await response.json();
+console.log('Payment code:', data.paymentCode);
+```
+
+**Note:** 
+- Payment code được tự động generate khi user được tạo
+- Nếu chưa có, endpoint này sẽ tự động tạo mới
+- Payment code format: 8 ký tự, chỉ chữ thường (a-z) và số (0-9)
+- **Khi chuyển khoản ngân hàng, nhập với format: `PTB` + payment code**
+- Ví dụ: Payment code là `a1a1a1a1a1a1a1a1` → Nhập vào nội dung: `PTBA1A1A1A1A1A1A1A1`
+- Tổng độ dài: 11 ký tự (PTB = 3 ký tự + 8 ký tự payment code)
+
+### 2. Get All Users (Paginated)
 Lấy danh sách tất cả người dùng trong hệ thống với phân trang.
 
 **Endpoint:** `GET /api/v1/users`
@@ -67,7 +188,7 @@ GET /api/v1/users?page=1&limit=5&search=john
 - `401`: Unauthorized - Invalid or missing token
 - `403`: Forbidden - Admin role required
 
-### 2. Get User by ID
+### 3. Get User by ID
 Lấy thông tin chi tiết của một người dùng.
 
 **Endpoint:** `GET /api/v1/users/{id}`
@@ -158,7 +279,7 @@ Content-Type: application/json
 - `401`: Unauthorized
 - `403`: Forbidden - Admin role required
 
-### 4. Update User
+### 5. Update User
 Cập nhật thông tin người dùng.
 
 **Endpoint:** `PUT /api/v1/users/{id}`
@@ -215,7 +336,7 @@ Content-Type: application/json
 - `403`: Forbidden - Admin role required
 - `404`: User not found
 
-### 5. Delete User
+### 6. Delete User
 Xóa người dùng khỏi hệ thống.
 
 **Endpoint:** `DELETE /api/v1/users/{id}`
@@ -252,6 +373,7 @@ Authorization: Bearer <access_token>
   password?: string;    // Hashed password (optional in responses)
   phone?: string;       // Phone number
   address?: string;     // Address
+  points: number;       // User points balance (default: 0)
   roleId?: string;      // Foreign key to Role
   role?: Role;          // Role object (eager loaded)
   createdAt: Date;      // Creation timestamp

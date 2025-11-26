@@ -8,6 +8,8 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -28,6 +30,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RoleName } from '../auth/entities/role.entity';
+import { User } from './entities/user.entity';
 
 @ApiTags('users')
 @Controller('api/v1/users')
@@ -35,6 +38,65 @@ import { RoleName } from '../auth/entities/role.entity';
 @ApiBearerAuth('JWT-auth')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user information' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user information retrieved successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMe(@Request() req: { user?: User }) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found in request');
+    }
+    const user = await this.userService.findOne(req.user.id);
+    
+    // Auto-generate payment code if not exists
+    if (!user.paymentCode) {
+      await this.userService.generateUniquePaymentCode(user.id);
+      return this.userService.findOne(user.id);
+    }
+    
+    return user;
+  }
+
+  @Get('me/payment-code')
+  @ApiOperation({ summary: 'Get or generate payment code for current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment code retrieved or generated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        paymentCode: { type: 'string', example: 'a1b2c3d4' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getPaymentCode(@Request() req: { user?: User }) {
+    if (!req.user) {
+      throw new UnauthorizedException('User not found in request');
+    }
+    
+    const user = await this.userService.findOne(req.user.id);
+    
+    if (user.paymentCode) {
+      return {
+        paymentCode: user.paymentCode,
+        message: 'Payment code retrieved',
+      };
+    }
+    
+    // Generate new payment code
+    const code = await this.userService.generateUniquePaymentCode(user.id);
+    return {
+      paymentCode: code,
+      message: 'Payment code generated successfully',
+    };
+  }
 
   @Get()
   @Roles(RoleName.ADMIN)

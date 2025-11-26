@@ -13,6 +13,7 @@ import { Roles } from './decorators/roles.decorator';
 import { RoleName } from './entities/role.entity';
 import { RoleService } from './services/role.service';
 import { UserService } from '../user/user.service';
+import { AddPointsDto, UserResponseDto } from '../user/dto/user.dto';
 
 @ApiTags('admin')
 @Controller('api/v1/admin')
@@ -88,5 +89,27 @@ export class AdminController {
   async seedRoles() {
     await this.roleService.seedRoles();
     return { message: 'Roles seeded successfully' };
+  }
+
+  @Post('users/:id/add-points')
+  @Roles(RoleName.ADMIN)
+  @ApiOperation({ summary: 'Add points to user (Admin only)' })
+  @ApiParam({
+    name: 'id',
+    description: 'User ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: AddPointsDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Points added successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid points value' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async addPoints(@Param('id') id: string, @Body() addPointsDto: AddPointsDto) {
+    return this.userService.addPoints(id, addPointsDto);
   }
 }
