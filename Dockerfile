@@ -3,31 +3,34 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install yarn if not available
+RUN apk add --no-cache yarn
+
 # Copy package files
 COPY package*.json ./
 COPY yarn.lock* ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
+RUN yarn install --frozen-lockfile && yarn cache clean
 
 # Copy source code (including Prisma if exists)
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN yarn build
 
 # Production stage
 FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install netcat for health checks and dependencies
-RUN apk add --no-cache netcat-openbsd
+# Install netcat for health checks and yarn
+RUN apk add --no-cache netcat-openbsd yarn
 
 # Install dependencies (including devDependencies for migrations and seeds)
 COPY package*.json ./
 COPY yarn.lock* ./
-RUN npm ci && npm cache clean --force
+RUN yarn install --frozen-lockfile --production=false && yarn cache clean
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
