@@ -11,9 +11,13 @@ import { Session } from './entities/session.entity';
 import { Photo } from './entities/photo.entity';
 import { PaginationService } from '../../common/services/pagination.service';
 import { CloudinaryService } from '../photo/services/cloudinary.service';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Photobooth, Session, Photo])],
+  imports: [
+    TypeOrmModule.forFeature([Photobooth, Session, Photo]),
+    UserModule,
+  ],
   controllers: [PublicController, AdminController],
   providers: [
     PhotoboothService,

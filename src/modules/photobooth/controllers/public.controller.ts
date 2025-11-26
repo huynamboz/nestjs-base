@@ -12,12 +12,15 @@ import {
   Request,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
   Delete,
+  UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -32,6 +35,7 @@ import { PhotoService } from '../services/photo.service';
 import { PhotoboothService } from '../services/photobooth.service';
 import { CloudinaryService } from '../../photo/services/cloudinary.service';
 import { PhotoboothGateway } from '../gateways/photobooth.gateway';
+import { UserService } from '../../user/user.service';
 import {
   CreateSessionDto,
   StartSessionDto,
@@ -46,6 +50,7 @@ import {
   PaginationDto,
   PaginatedResponseDto,
 } from '../../../common/dto/pagination.dto';
+import { SessionStatus } from '../enums/session-status.enum';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { User } from '../../user/entities/user.entity';
@@ -61,6 +66,7 @@ export class PublicController {
     private readonly photoboothService: PhotoboothService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly photoboothGateway: PhotoboothGateway,
+    private readonly userService: UserService,
   ) {}
 
   @Get('status')
@@ -118,17 +124,120 @@ export class PublicController {
     return this.photoboothService.findAvailable();
   }
 
+  @Get('sessions/current')
+  @ApiOperation({
+    summary: 'Get current active session for authenticated user',
+    description:
+      'Returns the most recent PENDING or ACTIVE session for the authenticated user. Returns null if no active session exists.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Current session retrieved successfully',
+    type: SessionResponseDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'No active session found',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'No active session found' },
+        session: { type: 'null' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getCurrentSession(@Request() req: { user?: User }) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    const session = await this.sessionService.findCurrentSession(userId);
+
+    if (!session) {
+      return {
+        message: 'No active session found',
+        session: null,
+      };
+    }
+
+    return session;
+  }
+
+  @Get('sessions')
+  @ApiOperation({
+    summary: 'Get all sessions for authenticated user',
+    description:
+      'Returns paginated list of sessions belonging to the authenticated user. Can filter by status.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (max 100)',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for filtering sessions by notes',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: SessionStatus,
+    description: 'Filter sessions by status',
+    example: SessionStatus.ACTIVE,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of sessions retrieved successfully',
+    type: PaginatedResponseDto<SessionResponseDto>,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getUserSessions(
+    @Request() req: { user?: User },
+    @Query() paginationDto: PaginationDto,
+    @Query('status') status?: SessionStatus,
+  ) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in request');
+    }
+
+    return await this.sessionService.findUserSessions(
+      userId,
+      paginationDto,
+      status,
+    );
+  }
+
   @Post('sessions')
   @ApiOperation({
     summary: 'Create new photo session (requires authentication)',
+    description:
+      'Creates a new photo session. Deducts 10000 points from user account. User must have at least 10000 points to create a session.',
   })
   @ApiBody({ type: CreateSessionDto })
   @ApiResponse({
     status: 201,
-    description: 'Session created successfully',
+    description: 'Session created successfully and 10000 points deducted',
     type: SessionResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Bad request - Insufficient points (user must have at least 10000 points)',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 409,
@@ -139,17 +248,30 @@ export class PublicController {
     @Body() createSessionDto: CreateSessionDto,
     @Request() req: { user?: User },
   ) {
-    const session = await this.sessionService.create(
-      createSessionDto,
-      req.user?.id,
-    );
-
-    // Emit WebSocket message to all connected clients
-    if (req.user?.id) {
-      this.photoboothGateway.emitStartSession(req.user.id);
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in request');
     }
 
-    return session;
+    // Deduct 10000 points before creating session
+    const SESSION_COST = 10000;
+    await this.userService.deductPoints(userId, SESSION_COST);
+
+    try {
+      const session = await this.sessionService.create(
+        createSessionDto,
+        userId,
+      );
+
+      // Emit WebSocket message to all connected clients
+      this.photoboothGateway.emitStartSession(userId);
+
+      return session;
+    } catch (error) {
+      // If session creation fails, refund the points
+      await this.userService.addPoints(userId, { points: SESSION_COST });
+      throw error;
+    }
   }
 
   @Get('sessions/:id')
@@ -507,6 +629,168 @@ export class PublicController {
       ...createPhotoDto,
       sessionId,
     });
+  }
+
+  @Post('sessions/:id/photos/upload-multiple')
+  @UseInterceptors(FilesInterceptor('images', 20)) // Max 20 images
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Upload multiple images to session and complete session',
+    description:
+      'Upload multiple image files to a session. Images will be uploaded to Cloudinary and saved as Photo entities. After successful upload, the session will be automatically completed. Maximum 20 images per request.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Session ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+          description: 'Image files to upload (max 20 files, 10MB each)',
+        },
+      },
+      required: ['images'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Images uploaded successfully and session completed',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Successfully uploaded 3 images and completed session',
+        },
+        photos: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/PhotoResponseDto' },
+        },
+        uploaded: { type: 'number', example: 3 },
+        failed: { type: 'number', example: 0 },
+        session: {
+          $ref: '#/components/schemas/SessionResponseDto',
+          description: 'Completed session object',
+        },
+        errors: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Error messages for failed uploads (if any)',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Bad request - No images provided, validation failed, or session has insufficient slots',
+  })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  async uploadMultipleImages(
+    @Param('id') sessionId: string,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
+          new FileTypeValidator({
+            fileType: /^image\/(jpeg|jpg|png|gif|webp)$/,
+          }),
+        ],
+        fileIsRequired: false, // Allow no files (will be checked manually)
+      }),
+    )
+    files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException(
+        'No images provided. Please upload at least one image.',
+      );
+    }
+
+    // Verify session exists and is active
+    const session = await this.sessionService.findOne(sessionId);
+
+    if (session.status !== SessionStatus.ACTIVE) {
+      throw new BadRequestException('Cannot upload photos to inactive session');
+    }
+
+    // Check if session has enough space for all images
+    const remainingSlots = session.maxPhotos - session.photoCount;
+    if (files.length > remainingSlots) {
+      throw new BadRequestException(
+        `Cannot upload ${files.length} images. Session only has ${remainingSlots} remaining slots (max: ${session.maxPhotos})`,
+      );
+    }
+
+    const uploadedPhotos: PhotoResponseDto[] = [];
+    const errors: string[] = [];
+
+    // Upload each image
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        // Upload to Cloudinary
+        const folder = `photobooth/sessions/${sessionId}`;
+        const imageUrl = await this.cloudinaryService.uploadImage(file, folder);
+
+        // Get next order number
+        const existingPhotos = await this.photoService.findBySession(sessionId);
+        const nextOrder = existingPhotos.length + uploadedPhotos.length + 1;
+
+        // Create photo entity
+        const photo = await this.photoService.create({
+          sessionId,
+          imageUrl,
+          order: nextOrder,
+        });
+
+        uploadedPhotos.push(photo);
+      } catch (error) {
+        errors.push(
+          `Failed to upload image ${i + 1}: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    // Complete session after successful upload
+    let completedSession: SessionResponseDto | null = null;
+    if (uploadedPhotos.length > 0) {
+      try {
+        const completed = await this.sessionService.completeSession(
+          sessionId,
+          {},
+        );
+        completedSession = completed as unknown as SessionResponseDto;
+
+        // Emit WebSocket message to stop session
+        if (session.userId) {
+          this.photoboothGateway.emitStopSession(session.userId);
+        }
+      } catch (error) {
+        // If completion fails, log but don't fail the whole request
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        errors.push(`Failed to complete session: ${errorMessage}`);
+      }
+    }
+
+    return {
+      message: `Successfully uploaded ${uploadedPhotos.length} image(s) and completed session`,
+      photos: uploadedPhotos,
+      uploaded: uploadedPhotos.length,
+      failed: errors.length,
+      session: completedSession ?? undefined,
+      errors: errors.length > 0 ? errors : undefined,
+    };
   }
 
   @Post('upload-image')

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -63,6 +64,27 @@ export class UserService {
   async addPoints(id: string, addPointsDto: AddPointsDto): Promise<User> {
     const user = await this.findOne(id);
     user.points = (user.points || 0) + addPointsDto.points;
+    return this.userRepository.save(user);
+  }
+
+  /**
+   * Deduct points from user
+   * @param id User ID
+   * @param points Points to deduct
+   * @returns Updated user
+   * @throws BadRequestException if user doesn't have enough points
+   */
+  async deductPoints(id: string, points: number): Promise<User> {
+    const user = await this.findOne(id);
+    const currentPoints = user.points || 0;
+    
+    if (currentPoints < points) {
+      throw new BadRequestException(
+        `Insufficient points. Required: ${points}, Available: ${currentPoints}`,
+      );
+    }
+    
+    user.points = currentPoints - points;
     return this.userRepository.save(user);
   }
 

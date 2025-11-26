@@ -141,6 +141,75 @@ export class SessionService {
     return session;
   }
 
+  /**
+   * Get current active session for a user
+   * Returns the most recent PENDING or ACTIVE session for the user
+   */
+  async findCurrentSession(userId: string): Promise<Session | null> {
+    const session = await this.sessionRepository
+      .createQueryBuilder('session')
+      .leftJoinAndSelect('session.photobooth', 'photobooth')
+      .leftJoinAndSelect('session.user', 'user')
+      .leftJoinAndSelect('session.photos', 'photos')
+      .where('session.userId = :userId', { userId })
+      .andWhere('(session.status = :pending OR session.status = :active)', {
+        pending: SessionStatus.PENDING,
+        active: SessionStatus.ACTIVE,
+      })
+      .orderBy('session.createdAt', 'DESC')
+      .getOne();
+
+    return session || null;
+  }
+
+  /**
+   * Get all sessions for a specific user with pagination and optional status filter
+   */
+  async findUserSessions(
+    userId: string,
+    paginationDto: PaginationDto,
+    status?: SessionStatus,
+  ): Promise<PaginatedResponseDto<Session>> {
+    const { page = 1, limit = 10, search } = paginationDto;
+
+    // Create query builder
+    let queryBuilder = this.sessionRepository
+      .createQueryBuilder('session')
+      .leftJoinAndSelect('session.photobooth', 'photobooth')
+      .leftJoinAndSelect('session.user', 'user')
+      .leftJoinAndSelect('session.photos', 'photos')
+      .where('session.userId = :userId', { userId })
+      .orderBy('session.createdAt', 'DESC');
+
+    // Apply status filter if provided
+    if (status) {
+      queryBuilder.andWhere('session.status = :status', { status });
+    }
+
+    // Apply search if provided
+    if (search) {
+      queryBuilder.andWhere('session.notes ILIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    // Get total count
+    const total = await queryBuilder.getCount();
+
+    // Apply pagination
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // Get data
+    const data = await queryBuilder.getMany();
+
+    // Create paginated response
+    return this.paginationService.createPaginatedResponse(
+      data,
+      total,
+      paginationDto,
+    );
+  }
+
   async findByPhotobooth(photoboothId: string): Promise<Session[]> {
     return this.sessionRepository.find({
       where: { photoboothId },

@@ -160,8 +160,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
-**Note:** `userId` sẽ được tự động lấy từ JWT token của user đã đăng nhập.
-```
+**Note:** 
+- `userId` sẽ được tự động lấy từ JWT token của user đã đăng nhập.
+- **Mỗi lần tạo session sẽ tự động trừ 10000 points từ tài khoản user.**
+- User phải có ít nhất 10000 points để tạo session.
+- Nếu tạo session thất bại (ví dụ: photobooth không available), points sẽ được hoàn lại tự động.
 
 **Response:**
 ```json
@@ -198,13 +201,182 @@ Authorization: Bearer <access_token>
 ```
 
 **Status Codes:**
-- `201`: Session created successfully
-- `400`: Bad request - validation failed
+- `201`: Session created successfully and 10000 points deducted
+- `400`: Bad request - validation failed or insufficient points (user must have at least 10000 points)
+- `401`: Unauthorized - Invalid or missing token
 - `404`: Photobooth not found
 - `409`: Photobooth not available or user has active session
 
-### 4. Get Session
-Lấy thông tin chi tiết session.
+**Error Response (Insufficient Points):**
+```json
+{
+  "statusCode": 400,
+  "message": "Insufficient points. Required: 10000, Available: 5000",
+  "error": "Bad Request"
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST "http://localhost:3000/api/v1/photobooth/sessions" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "photoboothId": "123e4567-e89b-12d3-a456-426614174000",
+    "maxPhotos": 5,
+    "notes": "Birthday party session"
+  }'
+```
+
+### 4. Get Current Session
+Lấy session hiện tại (PENDING hoặc ACTIVE) của user đang đăng nhập. Endpoint này hữu ích để user kiểm tra xem họ có đang có session nào đang hoạt động không.
+
+**Endpoint:** `GET /api/v1/photobooth/sessions/current`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response (Success - Session found):**
+```json
+{
+  "id": "789e0123-e89b-12d3-a456-426614174002",
+  "status": "active",
+  "userId": "456e7890-e89b-12d3-a456-426614174001",
+  "photoboothId": "123e4567-e89b-12d3-a456-426614174000",
+  "photobooth": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "name": "Photobooth #1",
+    "status": "busy"
+  },
+  "photos": [
+    {
+      "id": "abc12345-e89b-12d3-a456-426614174003",
+      "imageUrl": "https://example.com/photo1.jpg",
+      "order": 1,
+      "caption": "First photo"
+    }
+  ],
+  "photoCount": 1,
+  "maxPhotos": 5,
+  "filterIds": ["filter-uuid-1", "filter-uuid-2"],
+  "startedAt": "2024-01-01T00:05:00.000Z",
+  "completedAt": null,
+  "expiresAt": "2024-01-01T00:30:00.000Z",
+  "notes": "Birthday party session",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:05:00.000Z"
+}
+```
+
+**Response (No active session):**
+```json
+{
+  "message": "No active session found",
+  "session": null
+}
+```
+
+**Status Codes:**
+- `200`: Success (returns session or null)
+- `401`: Unauthorized - Invalid or missing token
+
+**cURL Example:**
+```bash
+curl -X GET "http://localhost:3000/api/v1/photobooth/sessions/current" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Notes:**
+- Endpoint này trả về session có status `PENDING` hoặc `ACTIVE` của user
+- Nếu user có nhiều session PENDING/ACTIVE, sẽ trả về session mới nhất (theo `createdAt`)
+- Nếu không có session nào, trả về `null`
+
+### 5. Get User Sessions
+Lấy danh sách tất cả sessions của user đang đăng nhập với phân trang và lọc theo status.
+
+**Endpoint:** `GET /api/v1/photobooth/sessions`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Query Parameters:**
+- `page` (optional, number): Số trang (bắt đầu từ 1), mặc định: 1
+- `limit` (optional, number): Số items mỗi trang (tối đa 100), mặc định: 10
+- `search` (optional, string): Tìm kiếm theo notes
+- `status` (optional, enum): Lọc theo status (`pending`, `active`, `completed`, `cancelled`, `expired`)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": "789e0123-e89b-12d3-a456-426614174002",
+      "status": "active",
+      "userId": "456e7890-e89b-12d3-a456-426614174001",
+      "photoboothId": "123e4567-e89b-12d3-a456-426614174000",
+      "photobooth": {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "name": "Photobooth #1",
+        "status": "busy"
+      },
+      "photos": [
+        {
+          "id": "abc12345-e89b-12d3-a456-426614174003",
+          "imageUrl": "https://example.com/photo1.jpg",
+          "order": 1
+        }
+      ],
+      "photoCount": 1,
+      "maxPhotos": 5,
+      "filterIds": ["filter-uuid-1"],
+      "startedAt": "2024-01-01T00:05:00.000Z",
+      "completedAt": null,
+      "expiresAt": "2024-01-01T00:30:00.000Z",
+      "notes": "Birthday party session",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:05:00.000Z"
+    }
+  ],
+  "meta": {
+    "total": 10,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1
+  }
+}
+```
+
+**Status Codes:**
+- `200`: Success
+- `401`: Unauthorized - Invalid or missing token
+
+**cURL Examples:**
+
+```bash
+# Lấy tất cả sessions
+curl -X GET "http://localhost:3000/api/v1/photobooth/sessions?page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Lọc theo status
+curl -X GET "http://localhost:3000/api/v1/photobooth/sessions?status=completed&page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Tìm kiếm theo notes
+curl -X GET "http://localhost:3000/api/v1/photobooth/sessions?search=birthday&page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Notes:**
+- Endpoint này chỉ trả về sessions của user đang đăng nhập
+- Sessions được sắp xếp theo `createdAt` DESC (mới nhất trước)
+- Có thể lọc theo status để xem chỉ các session đã hoàn thành, đang active, v.v.
+
+### 6. Get Session
+Lấy thông tin chi tiết session theo ID.
 
 **Endpoint:** `GET /api/v1/photobooth/sessions/{id}`
 
@@ -239,7 +411,7 @@ Lấy thông tin chi tiết session.
 }
 ```
 
-### 5. Start Session
+### 7. Start Session
 Bắt đầu phiên chụp hình.
 
 **Endpoint:** `PUT /api/v1/photobooth/sessions/{id}/start`
@@ -258,7 +430,7 @@ Bắt đầu phiên chụp hình.
 - `400`: Session not in pending status or expired
 - `404`: Session not found
 
-### 6. Complete Session
+### 8. Complete Session
 Hoàn thành phiên chụp hình.
 
 **Endpoint:** `PUT /api/v1/photobooth/sessions/{id}/complete`
@@ -277,7 +449,7 @@ Hoàn thành phiên chụp hình.
 - `400`: Session not active
 - `404`: Session not found
 
-### 7. Cancel Session
+### 9. Cancel Session
 Hủy phiên chụp hình.
 
 **Endpoint:** `PUT /api/v1/photobooth/sessions/{id}/cancel`
@@ -289,7 +461,7 @@ Hủy phiên chụp hình.
 - `400`: Session already completed
 - `404`: Session not found
 
-### 8. Add Filter to Session
+### 9. Add Filter to Session
 Thêm filter ID vào danh sách filters của session. Mỗi session có thể có nhiều filters.
 
 **Endpoint:** `POST /api/v1/photobooth/sessions/{id}/filters`
@@ -347,7 +519,7 @@ Khi filter được thêm thành công, hệ thống sẽ emit WebSocket message
 }
 ```
 
-### 9. Remove Filter from Session
+### 10. Remove Filter from Session
 Xóa filter ID khỏi danh sách filters của session.
 
 **Endpoint:** `DELETE /api/v1/photobooth/sessions/{id}/filters/{filterId}`
@@ -396,7 +568,7 @@ Khi filter được xóa thành công, hệ thống sẽ emit WebSocket message:
 }
 ```
 
-### 10. Start Capture
+### 12. Start Capture
 Bắt đầu chụp ảnh cho session. API này sẽ emit WebSocket message để báo hiệu bắt đầu chụp.
 
 **Endpoint:** `POST /api/v1/photobooth/sessions/{id}/start-capture`
@@ -430,7 +602,7 @@ Khi API được gọi, hệ thống sẽ emit WebSocket message:
 }
 ```
 
-### 11. Change Filter
+### 13. Change Filter
 Thêm hoặc xóa filter trong mảng `filterIds` của session. Xem chi tiết tại [Change Filter API Documentation](./change-filter-api.md).
 
 **Endpoints:**
@@ -448,7 +620,136 @@ Thêm hoặc xóa filter trong mảng `filterIds` của session. Xem chi tiết 
   - POST emits `add_filter` message
   - DELETE emits `delete_filter` message
 
-### 12. Session Photos
+### 14. Upload Multiple Images to Session
+Upload nhiều ảnh cùng lúc cho session. Ảnh sẽ được upload lên Cloudinary và tự động tạo Photo entities. **Sau khi upload thành công, session sẽ tự động được hoàn thành (completed).**
+
+**Endpoint:** `POST /api/v1/photobooth/sessions/{id}/photos/upload-multiple`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+```
+
+**Path Parameters:**
+- `id` (string, required): Session ID (UUID)
+
+**Request Body (multipart/form-data):**
+- `images` (array of files, required): Mảng các file ảnh cần upload
+  - Tối đa 20 ảnh mỗi request
+  - Mỗi ảnh tối đa 10MB
+  - Định dạng: jpeg, jpg, png, gif, webp
+
+**Response:**
+```json
+{
+  "message": "Successfully uploaded 3 images and completed session",
+  "photos": [
+    {
+      "id": "abc12345-e89b-12d3-a456-426614174003",
+      "sessionId": "789e0123-e89b-12d3-a456-426614174002",
+      "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photobooth/sessions/789e0123-e89b-12d3-a456-426614174002/photo1.jpg",
+      "order": 1,
+      "caption": null,
+      "isProcessed": false,
+      "createdAt": "2024-01-01T00:10:00.000Z",
+      "updatedAt": "2024-01-01T00:10:00.000Z"
+    },
+    {
+      "id": "def67890-e89b-12d3-a456-426614174004",
+      "sessionId": "789e0123-e89b-12d3-a456-426614174002",
+      "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/photobooth/sessions/789e0123-e89b-12d3-a456-426614174002/photo2.jpg",
+      "order": 2,
+      "caption": null,
+      "isProcessed": false,
+      "createdAt": "2024-01-01T00:10:01.000Z",
+      "updatedAt": "2024-01-01T00:10:01.000Z"
+    }
+  ],
+  "uploaded": 3,
+  "failed": 0,
+  "session": {
+    "id": "789e0123-e89b-12d3-a456-426614174002",
+    "status": "completed",
+    "photoCount": 3,
+    "completedAt": "2024-01-01T00:10:05.000Z",
+    ...
+  }
+}
+```
+
+**Response (with errors):**
+```json
+{
+  "message": "Successfully uploaded 2 images",
+  "photos": [...],
+  "uploaded": 2,
+  "failed": 1,
+  "errors": [
+    "Failed to upload image 3: File size exceeds limit"
+  ]
+}
+```
+
+**Status Codes:**
+- `201`: Images uploaded successfully and session completed (có thể một số ảnh thất bại, xem `failed` và `errors`)
+- `400`: Bad request - No images provided, validation failed, session inactive, or insufficient slots
+- `401`: Unauthorized - Invalid or missing token
+- `404`: Session not found
+
+**WebSocket Event:**
+Sau khi upload thành công và session được hoàn thành, hệ thống sẽ emit WebSocket message:
+```json
+{
+  "type": "stop_session",
+  "data": { "user_id": "456e7890-e89b-12d3-a456-426614174001" }
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST "http://localhost:3000/api/v1/photobooth/sessions/789e0123-e89b-12d3-a456-426614174002/photos/upload-multiple" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "images=@/path/to/image1.jpg" \
+  -F "images=@/path/to/image2.jpg" \
+  -F "images=@/path/to/image3.jpg"
+```
+
+**JavaScript (FormData) Example:**
+```javascript
+const formData = new FormData();
+formData.append('images', file1);
+formData.append('images', file2);
+formData.append('images', file3);
+
+const response = await fetch(
+  'http://localhost:3000/api/v1/photobooth/sessions/SESSION_ID/photos/upload-multiple',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_JWT_TOKEN'
+    },
+    body: formData
+  }
+);
+
+const result = await response.json();
+console.log('Uploaded:', result.uploaded);
+console.log('Failed:', result.failed);
+```
+
+**Notes:**
+- Session phải có status `ACTIVE` để upload ảnh
+- Số lượng ảnh upload không được vượt quá số slot còn lại của session (`maxPhotos - photoCount`)
+- Mỗi ảnh sẽ được tự động gán `order` theo thứ tự upload
+- Ảnh được lưu trong folder `photobooth/sessions/{sessionId}` trên Cloudinary
+- **Sau khi upload thành công (ít nhất 1 ảnh), session sẽ tự động được hoàn thành (status = `completed`)**
+- **Photobooth sẽ tự động trở về trạng thái `AVAILABLE` sau khi session hoàn thành**
+- **WebSocket message `stop_session` sẽ được emit sau khi session hoàn thành**
+- Nếu một số ảnh upload thất bại, response vẫn trả về 201 với thông tin `failed` và `errors`
+- Nếu tất cả ảnh upload thất bại, session sẽ không được hoàn thành
+
+### 15. Session Photos
 Quản lý ảnh trong session. Xem chi tiết tại [Session Photo API Documentation](./session-photo-api.md).
 
 ## Admin Endpoints (Cần authentication + admin role)
