@@ -54,6 +54,7 @@ import {
 } from '../../../common/dto/pagination.dto';
 import { SessionStatus } from '../enums/session-status.enum';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Public } from '../../auth/decorators/public.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { User } from '../../user/entities/user.entity';
 
@@ -636,6 +637,7 @@ export class PublicController {
   }
 
   @Post('sessions/:id/photos/upload-multiple')
+  @Public() // No JWT authentication required
   @UseInterceptors(
     FilesInterceptor('images', 20, {
       limits: {
@@ -646,9 +648,9 @@ export class PublicController {
   ) // Max 20 images, 10MB each
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Upload multiple images to session and complete session',
+    summary: 'Upload multiple images to session and complete session (Public)',
     description:
-      'Upload multiple image files to a session. Images will be uploaded to Cloudinary and saved as Photo entities. After successful upload, the session will be automatically completed. Maximum 20 images per request.',
+      'Upload multiple image files to a session. Images will be uploaded to Cloudinary and saved as Photo entities. After successful upload, the session will be automatically completed. Maximum 20 images per request. No authentication required.',
   })
   @ApiParam({
     name: 'id',
