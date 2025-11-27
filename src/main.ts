@@ -4,10 +4,21 @@ import { ValidationPipe } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Increase body parser limits for large file uploads
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+  // Increase timeout for file uploads (10 minutes = 600000ms)
+  const server = app.getHttpServer();
+  server.timeout = 600000; // 10 minutes
+  server.keepAliveTimeout = 610000; // 11 minutes (slightly longer than timeout)
+  server.headersTimeout = 620000; // 12 minutes (slightly longer than keepAliveTimeout)
 
   // Enable WebSocket adapter
   app.useWebSocketAdapter(new IoAdapter(app));

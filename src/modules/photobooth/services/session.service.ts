@@ -328,7 +328,14 @@ export class SessionService {
     id: string,
     completeSessionDto: CompleteSessionDto = {},
   ): Promise<Session> {
-    const session = await this.findOne(id);
+    // Use findOne without relations for initial check to avoid loading all photos
+    const session = await this.sessionRepository.findOne({
+      where: { id },
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Session with ID ${id} not found`);
+    }
 
     if (session.status !== SessionStatus.ACTIVE) {
       throw new BadRequestException('Session is not active');
@@ -348,7 +355,8 @@ export class SessionService {
       currentSessionId: null,
     });
 
-    return this.findOne(id);
+    // Return session without loading all relations to avoid large queries
+    return session;
   }
 
   async cancelSession(id: string): Promise<Session> {

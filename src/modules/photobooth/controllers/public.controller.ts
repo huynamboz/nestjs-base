@@ -19,6 +19,8 @@ import {
   Delete,
   UnauthorizedException,
   BadRequestException,
+  Logger,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -60,6 +62,8 @@ import { User } from '../../user/entities/user.entity';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class PublicController {
+  private readonly logger = new Logger(PublicController.name);
+
   constructor(
     private readonly sessionService: SessionService,
     private readonly photoService: PhotoService,
@@ -632,7 +636,14 @@ export class PublicController {
   }
 
   @Post('sessions/:id/photos/upload-multiple')
-  @UseInterceptors(FilesInterceptor('images', 20)) // Max 20 images
+  @UseInterceptors(
+    FilesInterceptor('images', 20, {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB per file
+        files: 20, // Max 20 files
+      },
+    }),
+  ) // Max 20 images, 10MB each
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Upload multiple images to session and complete session',
@@ -667,19 +678,21 @@ export class PublicController {
     schema: {
       type: 'object',
       properties: {
+        success: {
+          type: 'boolean',
+          example: true,
+          description: 'Whether the operation was successful',
+        },
         message: {
           type: 'string',
           example: 'Successfully uploaded 3 images and completed session',
         },
-        photos: {
-          type: 'array',
-          items: { $ref: '#/components/schemas/PhotoResponseDto' },
-        },
         uploaded: { type: 'number', example: 3 },
         failed: { type: 'number', example: 0 },
-        session: {
-          $ref: '#/components/schemas/SessionResponseDto',
-          description: 'Completed session object',
+        sessionId: {
+          type: 'string',
+          example: '123e4567-e89b-12d3-a456-426614174000',
+          description: 'Session ID',
         },
         errors: {
           type: 'array',
@@ -710,87 +723,193 @@ export class PublicController {
     )
     files: Express.Multer.File[],
   ) {
-    if (!files || files.length === 0) {
-      throw new BadRequestException(
-        'No images provided. Please upload at least one image.',
+    try {
+      this.logger.log(
+        `Upload multiple images request: sessionId=${sessionId}, filesCount=${files?.length || 0}`,
       );
-    }
 
-    // Verify session exists and is active
-    const session = await this.sessionService.findOne(sessionId);
-
-    if (session.status !== SessionStatus.ACTIVE) {
-      throw new BadRequestException('Cannot upload photos to inactive session');
-    }
-
-    // Check if session has enough space for all images
-    const remainingSlots = session.maxPhotos - session.photoCount;
-    if (files.length > remainingSlots) {
-      throw new BadRequestException(
-        `Cannot upload ${files.length} images. Session only has ${remainingSlots} remaining slots (max: ${session.maxPhotos})`,
-      );
-    }
-
-    const uploadedPhotos: PhotoResponseDto[] = [];
-    const errors: string[] = [];
-
-    // Upload each image
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      try {
-        // Upload to Cloudinary
-        const folder = `photobooth/sessions/${sessionId}`;
-        const imageUrl = await this.cloudinaryService.uploadImage(file, folder);
-
-        // Get next order number
-        const existingPhotos = await this.photoService.findBySession(sessionId);
-        const nextOrder = existingPhotos.length + uploadedPhotos.length + 1;
-
-        // Create photo entity
-        const photo = await this.photoService.create({
-          sessionId,
-          imageUrl,
-          order: nextOrder,
-        });
-
-        uploadedPhotos.push(photo);
-      } catch (error) {
-        errors.push(
-          `Failed to upload image ${i + 1}: ${(error as Error).message}`,
+      if (!files || files.length === 0) {
+        throw new BadRequestException(
+          'No images provided. Please upload at least one image.',
         );
       }
-    }
 
-    // Complete session after successful upload
-    let completedSession: SessionResponseDto | null = null;
-    if (uploadedPhotos.length > 0) {
-      try {
-        const completed = await this.sessionService.completeSession(
-          sessionId,
-          {},
+      // Verify session exists and is active
+      this.logger.log(`Finding session: ${sessionId}`);
+      const session = await this.sessionService.findOne(sessionId);
+
+      if (!session) {
+        this.logger.error(`Session not found: ${sessionId}`);
+        throw new BadRequestException(`Session with ID ${sessionId} not found`);
+      }
+
+      if (session.status !== SessionStatus.ACTIVE) {
+        this.logger.warn(
+          `Cannot upload to inactive session: ${sessionId}, status: ${session.status}`,
         );
-        completedSession = completed as unknown as SessionResponseDto;
+        throw new BadRequestException(
+          'Cannot upload photos to inactive session',
+        );
+      }
 
-        // Emit WebSocket message to stop session
-        if (session.userId) {
-          this.photoboothGateway.emitStopSession(session.userId);
+      // Check if session has enough space for all images
+      const remainingSlots = session.maxPhotos - session.photoCount;
+      if (files.length > remainingSlots) {
+        this.logger.warn(
+          `Insufficient slots: requested=${files.length}, remaining=${remainingSlots}`,
+        );
+        throw new BadRequestException(
+          `Cannot upload ${files.length} images. Session only has ${remainingSlots} remaining slots (max: ${session.maxPhotos})`,
+        );
+      }
+
+      // Get existing photos count once (before loop to avoid multiple queries)
+      this.logger.log(`Getting existing photos for session: ${sessionId}`);
+      const existingPhotos = await this.photoService.findBySession(sessionId);
+      const baseOrder = existingPhotos.length;
+      this.logger.log(
+        `Base order: ${baseOrder}, existing photos: ${existingPhotos.length}`,
+      );
+
+      const uploadedPhotos: PhotoResponseDto[] = [];
+      const errors: string[] = [];
+
+      // Upload each image sequentially
+      this.logger.log(`Starting upload of ${files.length} images`);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        this.logger.log(
+          `Uploading image ${i + 1}/${files.length}: ${file.originalname}, size: ${file.size} bytes`,
+        );
+        try {
+          // Upload to Cloudinary
+          const folder = `photobooth/sessions/${sessionId}`;
+          this.logger.log(`Uploading to Cloudinary folder: ${folder}`);
+          const imageUrl = await this.cloudinaryService.uploadImage(
+            file,
+            folder,
+          );
+          this.logger.log(`Cloudinary upload successful: ${imageUrl}`);
+
+          // Calculate order (baseOrder + current index + 1)
+          const nextOrder = baseOrder + uploadedPhotos.length + 1;
+
+          // Create photo entity
+          this.logger.log(`Creating photo entity with order: ${nextOrder}`);
+          const photo = await this.photoService.create({
+            sessionId,
+            imageUrl,
+            order: nextOrder,
+          });
+          this.logger.log(`Photo created successfully: ${photo.id}`);
+
+          uploadedPhotos.push(photo);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          this.logger.error(
+            `Failed to upload image ${i + 1}: ${errorMessage}`,
+            errorStack,
+          );
+          errors.push(`Failed to upload image ${i + 1}: ${errorMessage}`);
+          // Continue with next image even if one fails
         }
-      } catch (error) {
-        // If completion fails, log but don't fail the whole request
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        errors.push(`Failed to complete session: ${errorMessage}`);
       }
-    }
 
-    return {
-      message: `Successfully uploaded ${uploadedPhotos.length} image(s) and completed session`,
-      photos: uploadedPhotos,
-      uploaded: uploadedPhotos.length,
-      failed: errors.length,
-      session: completedSession ?? undefined,
-      errors: errors.length > 0 ? errors : undefined,
-    };
+      this.logger.log(
+        `Upload completed: ${uploadedPhotos.length} successful, ${errors.length} failed`,
+      );
+
+      // // Complete session after successful upload
+      // let sessionCompleted = false;
+      // if (uploadedPhotos.length > 0) {
+      //   try {
+      //     this.logger.log(`Completing session: ${sessionId}`);
+      //     // Don't await the return value, just complete the session
+      //     const completedSession = await this.sessionService.completeSession(
+      //       sessionId,
+      //       {},
+      //     );
+      //     sessionCompleted = true;
+      //     this.logger.log(
+      //       `Session completed successfully: ${sessionId}, status: ${completedSession.status}`,
+      //     );
+
+      //     // Emit WebSocket message to stop session
+      //     if (session.userId) {
+      //       this.photoboothGateway.emitStopSession(session.userId);
+      //       this.logger.log(
+      //         `Emitted stop_session event for user: ${session.userId}`,
+      //       );
+      //     }
+      //   } catch (error) {
+      //     // If completion fails, log but don't fail the whole request
+      //     const errorMessage =
+      //       error instanceof Error ? error.message : 'Unknown error';
+      //     const errorStack = error instanceof Error ? error.stack : undefined;
+      //     this.logger.error(
+      //       `Failed to complete session: ${errorMessage}`,
+      //       errorStack,
+      //     );
+      //     errors.push(`Failed to complete session: ${errorMessage}`);
+      //   }
+      // }
+
+      // this.logger.log(
+      //   `Returning response: ${uploadedPhotos.length} photos uploaded, session completed: ${sessionCompleted}`,
+      // );
+
+      // Prepare response object (ensure no undefined values that could cause serialization issues)
+      // const response: {
+      //   success: boolean;
+      //   message: string;
+      //   uploaded: number;
+      //   failed: number;
+      //   sessionId: string;
+      //   errors?: string[];
+      // } = {
+      //   success: true,
+      //   message: `Successfully uploaded ${uploadedPhotos.length} image(s) and completed session`,
+      //   uploaded: uploadedPhotos.length,
+      //   failed: errors.length,
+      //   sessionId: sessionId,
+      // };
+
+      // // Only add errors if there are any
+      // if (errors.length > 0) {
+      //   response.errors = errors;
+      // }
+
+      // this.logger.log(
+      //   `Response prepared: success=${response.success}, uploaded=${response.uploaded}, failed=${response.failed}`,
+      // );
+      return {
+        test: 'test',
+      };
+    } catch (error) {
+      // Catch any unexpected errors and log them
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(
+        `Unexpected error in uploadMultipleImages: ${errorMessage}`,
+        errorStack,
+      );
+
+      // Re-throw known exceptions (BadRequestException, etc.)
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+
+      // Wrap unknown errors in InternalServerErrorException
+      throw new InternalServerErrorException(
+        `Failed to upload images: ${errorMessage}`,
+      );
+    }
   }
 
   @Post('upload-image')
